@@ -3,13 +3,17 @@ import pandas as pd
 import torch
 import sys
 import argparse
+import os
 
 from sklearn.metrics import classification_report as report, f1_score
 from sklearn.preprocessing import MultiLabelBinarizer
 from transformers import BertTokenizer, BertModel
 from torch.optim import Adam
+
+sys.path.append(os.getenv("MY_REPO_LOCATION")) # enable importing from the root directory
 from bundle.scorers.scorer_subtask_3 import _read_csv_input_file, evaluate
 from bundle.baselines.st3 import *
+from models.helpers import *
 
 # unused imports:
 # from venv import logger
@@ -27,43 +31,27 @@ from bundle.baselines.st3 import *
 def main():
     
     parser = argparse.ArgumentParser(description='Subtask-3')
-    parser.add_argument('train_folder',  type=str, nargs=1,
-                        help='Path to training articles')
-    parser.add_argument('dev_folder',  type=str, nargs=1,
-                        help='Path to dev articles')
-    parser.add_argument('train_labels',  type=str, nargs=1,
-                    help='Path to training labels')
-    parser.add_argument('dev_labels',  type=str, nargs=1,
-                    help='Path to dev labels')
-    parser.add_argument('classes_folder',  type=str, nargs=1,
-                    help='Path to classes folder')
-    parser.add_argument('dev_output',  type=str, nargs=1,
-                    help='Path to dev_output file')
-    parser.add_argument('output_true',  type=str, nargs=1,
-                    help='Path to output_true file')
-    parser.add_argument('dev_output_true',  type=str, nargs=1,
-                    help='Path to dev_output_true file')
-    parser.add_argument('-o', "--output",  type=str, nargs=1,
-                help='Path to output predictions on dev (mandatory)')
+    parser.add_argument('language', type=str, nargs=1,
+                    help='Language of the dataset (en, es, fr, ge, gr, it, ka, po, ru)')
     
     args = parser.parse_args()
-    if not args.output:
-        print("argument -o is mandatory")
-        sys.exit(1)
+    language = args.language[0]
+    paths :dict = get_paths(language)
     
-    folder_train = args.train_folder[0]
-    labels_train_fn = args.train_labels[0]
+    # TODO remove this later and replace with the use of the paths dictionary
+    folder_train = paths['train_folder']
+    labels_train_fn = paths['train_labels']
 
-    folder_dev = args.dev_folder[0]
-    labels_dev_fn = args.dev_labels[0]
+    folder_dev = paths['dev_folder']
+    labels_dev_fn = paths['dev_labels']
 
-    out_fn = args.output[0] 
-    out_true = args.output_true[0]
+    out_fn = os.path.join(BASE_PATH, f"outputs/bert_baseline/{language}_output.txt")
+    out_true = os.path.join(BASE_PATH, f"outputs/bert_baseline/{language}_output_true.txt")
     
-    out_dev = args.dev_output[0]
-    out_dev_true = args.dev_output_true[0]
+    out_dev = os.path.join(BASE_PATH, f"outputs/bert_baseline/{language}_dev_output.txt")
+    out_dev_true = os.path.join(BASE_PATH, f"outputs/bert_baseline/{language}_dev_output_true.txt")
 
-    classes = args.classes_folder[0]
+    classes = CLASSES_SUBTASK_3_PATH # this never changes so we can use the constant
 
     labels = pd.read_csv(labels_train_fn,sep='\t',encoding='utf-8',header=None)
     labels = labels.rename(columns={0:'id',1:'line',2:'labels'})
@@ -267,7 +255,7 @@ def main():
         else:
             early_stopping_counter += 1
 
-        if early_stopping_counter >= patience:
+        if early_stopping_counter >= patience and epoch < num_epochs - 1:
             print("Validation loss did not improve for", patience, "epochs. Early stopping...")
             break
 
