@@ -3,6 +3,7 @@
 # Organization:
 * `bundle/*` - the data, baselines and scorers given by organizers
 * `models/*` - our models codes
+    * `models/helpers.py` - our functions that could be useful for multiple models
 * `outputs/*` - our models outputs and scores
 
 # Environment:
