@@ -82,9 +82,9 @@ def model_pass(model, data_loader, indexes, multibin_decode, threshold, out_file
     """
 
     with open(out_file_predictions, "w") as f_predictions:
-            f_predictions.write("Epoch\tAccuracy\tF1 Macro\tF1 Micro\n")
-    with open(out_f_metrics, "w") as f_metrics:
             pass
+    with open(out_f_metrics, "w") as f_metrics:
+            f_metrics.write("Epoch\tAccuracy\tF1 Macro\tF1 Micro\n")
     
     if bool_train == True:
         model.train()  # set model to training mode, possibly useless (no dropout or batchnorm layers in this model)
@@ -144,7 +144,7 @@ def model_pass(model, data_loader, indexes, multibin_decode, threshold, out_file
         f1_macro = f1_score(all_labels, all_predictions, average='macro')
         f1_micro = f1_score(all_labels, all_predictions, average='micro')
 
-        f_predictions.write(f"{epoch + 1}\t{accuracy}\t{f1_macro}\t{f1_micro}\n")
+        out_f_metrics.write(f"{epoch + 1}\t{accuracy}\t{f1_macro}\t{f1_micro}\n")
         # Is there a need to calculate the loss? -> I didn't write it down in .txt
         print("Epoch:", epoch + 1, "Average Batch Loss:", average_loss, "Accuracy:", accuracy, "F1 Macro:", f1_macro, "F1 Micro:", f1_micro)
 
