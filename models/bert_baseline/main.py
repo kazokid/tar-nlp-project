@@ -1,5 +1,7 @@
+from venv import logger
 import numpy as np
 import pandas as pd
+from regex import F
 import torch
 import sys
 import argparse
@@ -11,16 +13,14 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from transformers import BertTokenizer, BertModel
 from torch.optim import Adam
 
-# todo check if this is okay
-if os.getenv("MY_REPO_LOCATION") not in sys.path:
-    sys.path.append(
+sys.path.append(
         os.getenv("MY_REPO_LOCATION")
     )  # enable importing from the root directory
 
 from bundle.scorers.scorer_subtask_3 import _read_csv_input_file, evaluate
 from bundle.baselines.st3 import *
 from models.helpers import *  # myb switch to helper. use to make it clear the source of the function
-
+from models.bert_baseline.bert_baseline import *
 
 def main():
     parser = argparse.ArgumentParser(description="Subtask-3")
@@ -43,17 +43,17 @@ def main():
     labels_dev_fn = paths["dev_labels"]
 
     out_fn = os.path.join(
-        BASE_PATH, f"outputs/bert_baseline/{language}_output.txt"
+        BASE_PATH, f"outputs\\bert_baseline\\{language}_output.txt"
     )
     out_true = os.path.join(
-        BASE_PATH, f"outputs/bert_baseline/{language}_output_true.txt"
+        BASE_PATH, f"outputs\\bert_baseline\\{language}_output_true.txt"
     )
 
     out_dev = os.path.join(
-        BASE_PATH, f"outputs/bert_baseline/{language}_dev_output.txt"
+        BASE_PATH, f"outputs\\bert_baseline\\{language}_dev_output.txt"
     )
     out_dev_true = os.path.join(
-        BASE_PATH, f"outputs/bert_baseline/{language}_dev_output_true.txt"
+        BASE_PATH, f"outputs\\bert_baseline\\{language}_dev_output_true.txt"
     )
 
     classes = (
@@ -94,13 +94,12 @@ def main():
     model = BertModel.from_pretrained("bert-base-multilingual-cased")
 
     loss_function = torch.nn.BCEWithLogitsLoss()
-    optimizer = Adam(model.parameters(), lr=2e-5)  # bert params??
+    optimizer = Adam(model.parameters(), lr=1e-4)  # bert params??
 
     batch_size = 16
     total_loss = 0.0
-    num_batches = 0
     num_epochs = 5
-    num_classes = 20
+    num_classes = 19
     patience = 3
     best_loss = float("inf")
 
@@ -116,7 +115,7 @@ def main():
             pass
 
         total_loss = 0.0
-        for i in range(0, len(X_train), batch_size):
+        for i in range(0, 100, batch_size):
             model.train()
 
             batch_texts = X_train[i : i + batch_size]
@@ -131,18 +130,27 @@ def main():
             with torch.no_grad():
                 outputs = model(**tokenized_input)
 
-            last_hidden_states = outputs.last_hidden_state
+            last_hidden_states = outputs.last_hidden_state # [batch_size, max. sequence_length, size of hidden layer]
 
             Y_batch = Y_train[i : i + batch_size]
             Y_labels = train[i : i + batch_size]
 
+            drop_layer = torch.nn.Dropout(0.3)
+            drop = drop_layer(last_hidden_states)
             linear_layer = torch.nn.Linear(
                 last_hidden_states.shape[-1], num_classes
             )  # should exist before training!!
             classification_output = linear_layer(
-                last_hidden_states
-            )  # print(classification_output.shape)
+                drop
+            )
+            print(classification_output.shape) # [batch_size, max. sequence_length, number of classes]
 
+            cl = classification_output[:, -1, :]
+            print(cl[0])
+            logits_S = torch.sigmoid(classification_output)
+            copy_sig = logits_S.round().int().squeeze(-1)
+
+            '''
             sigmoid_output = torch.sigmoid(classification_output)
             copy_sig = sigmoid_output.clone()  # why clone?
             copy_sig[copy_sig >= 0.5] = 1
@@ -150,12 +158,12 @@ def main():
             # print("Y_batch_one_hot_labels:", Y_batch)
             # print(Y_batch.shape)
             # print(sigmoid_output.shape)
+            '''
 
             sigmoid_o = copy_sig[
                 :, 0, :
-            ]  # why is this 3rd order tensor? is it?
+            ]  # why is this 3rd order tensor? is it? 
             predicted_labels = sigmoid_o.int().tolist()
-            # print("predicted labels: ", predicted_labels)
 
             out = multibin.inverse_transform(torch.tensor(predicted_labels))
             output = list(map(lambda x: ",".join(x), out))
@@ -164,8 +172,6 @@ def main():
             ou.to_csv(out_fn, sep="\t", header=None, mode="a")
             # ou.loc[first_indx:last_processed_index+1].to_csv(out_fn, sep='\t', header=None, mode='a')
 
-            # print(Y_batch)
-            # print(predicted_labels)
             f1_macro = f1_score(
                 Y_batch, predicted_labels, average="macro", zero_division=0
             )
@@ -176,8 +182,9 @@ def main():
             print("F1 Micro:", f1_micro)
 
             loss = loss_function(
-                sigmoid_o, torch.tensor(Y_batch, dtype=torch.float32)
-            )
+                classification_output[:, -1, :], torch.tensor(Y_batch, dtype=torch.float32)
+            ) # micanje srednje dim. da dobijemo velicinu najdulje recenice
+            
             print("Batch loss:", loss, " for ", i)
 
             optimizer.zero_grad()
@@ -185,13 +192,11 @@ def main():
             optimizer.step()
 
             total_loss += loss.item()
-            num_batches += 1
 
         ou = pd.read_csv(out_fn, sep="\t", encoding="utf-8", header=None)
         ou = ou.rename(columns={0: "id", 1: "line", 2: "labels"})
         ou = ou.set_index(["id", "line"])
 
-        # print(ou)
         copied_labels = labels.copy()
         for index in labels.index:
             mask = ou.index == index
@@ -204,7 +209,6 @@ def main():
                 copied_labels.to_csv(out_true, sep="\t", header=None)
                 break
 
-        # labels.to_csv(out_fn, sep='\t', header=None, mode='a') # mode = 'a' ako zelimo nastaviti pisati odakle smo stali u .txt
         labels.loc[:index].copy().to_csv(out_fn, sep="\t", header=None)
 
         average_loss = total_loss / (100 // batch_size)
@@ -219,7 +223,7 @@ def main():
 
         dev_loss = 0.0
         model.eval()
-        for i in range(0, len(X_dev), batch_size):
+        for i in range(0, 100, batch_size):
             Y_labels = dev[i : i + batch_size]
 
             batch_texts = X_dev[i : i + batch_size]
@@ -315,48 +319,5 @@ def main():
 
     return average_loss
 
-
-def test_model_on_dev_set(
-    model, tokenizer, dev_data, multibin, batch_size, num_classes, out_fn
-):
-    X_dev = dev_data["text"].values.tolist()
-    Y_dev = dev_data["labels"].fillna("").str.split(",").values
-
-    with open(out_fn, "w") as file:
-        pass
-
-    for i in range(0, len(X_dev), batch_size):
-        batch_texts = X_dev[i : i + batch_size]
-        tokenized_input = tokenizer(
-            batch_texts,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=300,
-        )
-
-        with torch.no_grad():
-            outputs = model(**tokenized_input)
-        last_hidden_states = outputs.last_hidden_state
-
-        linear_layer = torch.nn.Linear(
-            last_hidden_states.shape[-1], num_classes
-        )
-        classification_output = linear_layer(last_hidden_states)
-
-        sigmoid_output = torch.sigmoid(classification_output)
-        copy_sig = sigmoid_output.clone()
-        copy_sig[copy_sig >= 0.5] = 1
-        copy_sig[copy_sig < 0.5] = 0
-
-        sigmoid_o = copy_sig[:, 0, :]
-
-        # Output predictions
-        out = multibin.inverse_transform(sigmoid_o.detach().numpy())
-        output = list(map(lambda x: ",".join(x), out))
-        ou = pd.DataFrame(output)
-        ou.to_csv(out_fn, sep="\t", header=None, mode="a")
-
-
 if __name__ == "__main__":
-    train_dtframe = main()
+    second_main()
