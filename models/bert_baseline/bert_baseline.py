@@ -30,9 +30,7 @@ class BertBaseline(nn.Module):
         self.bert_tokenizer = BertTokenizer.from_pretrained(
             "bert-base-multilingual-cased"
         )
-        self.bert_model = BertModel.from_pretrained(
-            "bert-base-multilingual-cased"
-        )
+        self.bert_model = BertModel.from_pretrained("bert-base-multilingual-cased")
         self.loss_function = (
             torch.nn.BCEWithLogitsLoss()
         )  # check if this is the correct loss function
@@ -125,9 +123,7 @@ def model_pass(
             input_ids, attention_mask, true_labels = batch
 
             Y_batch = true_labels.clone().detach().to(torch.float32)
-            batch_indexes = indexes[
-                batch_num : batch_num + data_loader.batch_size
-            ]
+            batch_indexes = indexes[batch_num : batch_num + data_loader.batch_size]
 
             logits = model.forward(
                 (input_ids, attention_mask, None)
@@ -152,9 +148,7 @@ def model_pass(
 
             pred_list = list(map(lambda x: ",".join(x), predictions))
             df_pred = pd.DataFrame(pred_list, batch_indexes)
-            df_pred.to_csv(
-                out_file_predictions, sep="\t", header=None, mode="a"
-            )
+            df_pred.to_csv(out_file_predictions, sep="\t", header=None, mode="a")
 
             total_loss += loss.item()
             total_examples_processed += len(input_ids)
@@ -165,16 +159,12 @@ def model_pass(
 
             print()
 
-        average_loss = total_loss / (
-            len(data_loader.dataset) // data_loader.batch_size
-        )
+        average_loss = total_loss / (len(data_loader.dataset) // data_loader.batch_size)
         accuracy = accuracy_score(all_labels, all_predictions)
         f1_macro = f1_score(all_labels, all_predictions, average="macro")
         f1_micro = f1_score(all_labels, all_predictions, average="micro")
 
-        out_f_metrics.write(
-            f"{epoch + 1}\t{accuracy}\t{f1_macro}\t{f1_micro}\n"
-        )
+        out_f_metrics.write(f"{epoch + 1}\t{accuracy}\t{f1_macro}\t{f1_micro}\n")
         # Is there a need to calculate the loss? -> I didn't write it down in .txt
         print(
             "Epoch:",
@@ -231,9 +221,7 @@ def second_main():
     train_labels = pd.read_csv(
         paths["train_labels"], sep="\t", encoding="utf-8", header=None
     )
-    train_labels = train_labels.rename(
-        columns={0: "id", 1: "line", 2: "labels"}
-    )
+    train_labels = train_labels.rename(columns={0: "id", 1: "line", 2: "labels"})
     train_labels = train_labels.set_index(["id", "line"])
 
     dev_labels = pd.read_csv(

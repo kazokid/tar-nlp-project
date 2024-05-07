@@ -4,8 +4,16 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer
 
+
 class CustomDataset(Dataset):
-    def __init__(self, data, model_name, max_length=200, text_column="text", label_column="labels"):
+    def __init__(
+        self,
+        data,
+        model_name,
+        max_length=200,
+        text_column="text",
+        label_column="labels",
+    ):
         self.data = data
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, return_dict=False)
         self.text_column = text_column
@@ -15,7 +23,9 @@ class CustomDataset(Dataset):
 
         # Apply one-hot encoding to labels
         transf = self.one_hot.fit_transform(self.data[label_column].values)
-        self.labels_encoded = self.one_hot.fit_transform(self.data[label_column].fillna("").str.split(",").values).tolist() # remove the first column -it typically marks beginning of the sentece
+        self.labels_encoded = self.one_hot.fit_transform(
+            self.data[label_column].fillna("").str.split(",").values
+        ).tolist()  # remove the first column -it typically marks beginning of the sentece
         # MultiLabelBinarizer automatically determines the number of unique labels
 
     def safe_literal_eval(self, x):
@@ -56,16 +66,19 @@ class CustomDataset(Dataset):
             max_length=self.max_length,
         )
 
-        input_ids = encoding["input_ids"].squeeze() # Squeeze to remove extra dimensions
+        input_ids = encoding[
+            "input_ids"
+        ].squeeze()  # Squeeze to remove extra dimensions
         attention_mask = encoding["attention_mask"].squeeze()
 
         labels = torch.tensor(labels, dtype=torch.float32)
 
         return input_ids, attention_mask, labels
 
+
 # vidjeti kako odrediti optimalan max_length ?
 def create_dataloader(data, model_name, batch_size=16, max_length=200):
-    
+
     dataset = CustomDataset(data, model_name, max_length)
     one_hot_encoder = dataset.multi_label_binarizer()
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
