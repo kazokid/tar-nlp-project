@@ -19,7 +19,9 @@ def get_articles_folder_path(language, type):
         path (str): Path to the folder with the articles of the given language and type
     """
 
-    return os.path.join(BASE_PATH, f"bundle/data/{language}/{type}-articles-subtask-3/")
+    return os.path.join(
+        BASE_PATH, f"bundle/data/{language}/{type}-articles-subtask-3/"
+    )
 
 
 def get_paths(language):
