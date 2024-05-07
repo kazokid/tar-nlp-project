@@ -221,19 +221,21 @@ def second_main():
     CLASSES = read_techniques_list_from_file(CLASSES_SUBTASK_3_PATH)
 
     # label loading
-    train_labels = pd.read_csv(
-        paths["train_labels"], sep="\t", encoding="utf-8", header=None
+    train_labels = (
+        pd.read_csv(
+            paths["train_labels"], sep="\t", encoding="utf-8", header=None
+        )
+        .rename(columns={0: "id", 1: "line", 2: "labels"})
+        .set_index(["id", "line"])
     )
-    train_labels = train_labels.rename(
-        columns={0: "id", 1: "line", 2: "labels"}
-    )
-    train_labels = train_labels.set_index(["id", "line"])
 
-    dev_labels = pd.read_csv(
-        paths["dev_labels"], sep="\t", encoding="utf-8", header=None
+    dev_labels = (
+        pd.read_csv(
+            paths["dev_labels"], sep="\t", encoding="utf-8", header=None
+        )
+        .rename(columns={0: "id", 1: "line", 2: "labels"})
+        .set_index(["id", "line"])
     )
-    dev_labels = dev_labels.rename(columns={0: "id", 1: "line", 2: "labels"})
-    dev_labels = dev_labels.set_index(["id", "line"])
 
     train = make_dataframe(paths["train_folder"], paths["train_labels"])
     dev = make_dataframe(paths["dev_folder"], paths["dev_labels"])

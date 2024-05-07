@@ -15,14 +15,16 @@ class CustomDataset(Dataset):
         label_column="labels",
     ):
         self.data = data
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, return_dict=False)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_name, return_dict=False
+        )
         self.text_column = text_column
         self.label_column = label_column
         self.max_length = max_length
         self.one_hot = MultiLabelBinarizer()
 
         # Apply one-hot encoding to labels
-        transf = self.one_hot.fit_transform(self.data[label_column].values)
+
         self.labels_encoded = self.one_hot.fit_transform(
             self.data[label_column].fillna("").str.split(",").values
         ).tolist()  # remove the first column -it typically marks beginning of the sentece
@@ -80,7 +82,6 @@ class CustomDataset(Dataset):
 def create_dataloader(data, model_name, batch_size=16, max_length=200):
 
     dataset = CustomDataset(data, model_name, max_length)
-    one_hot_encoder = dataset.multi_label_binarizer()
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    return dataloader, one_hot_encoder
+    return dataloader, dataset.multi_label_binarizer()
