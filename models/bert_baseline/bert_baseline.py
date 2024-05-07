@@ -101,8 +101,6 @@ def model_pass(
     None
     """
 
-    with open(out_file_predictions, "w") as f_predictions:
-        pass
     with open(out_f_metrics, "w") as f_metrics:
         f_metrics.write("Epoch\tAccuracy\tF1 Macro\tF1 Micro\n")
 
