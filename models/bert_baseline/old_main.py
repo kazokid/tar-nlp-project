@@ -317,7 +317,3 @@ from models.bert_baseline.bert_baseline import *
 #     print("Average Batch Loss:", average_loss)
 
 #     return average_loss
-
-
-if __name__ == "__main__":
-    second_main()

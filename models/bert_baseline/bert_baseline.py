@@ -10,12 +10,13 @@ from sklearn.metrics import classification_report as accuracy_score, f1_score
 from sklearn.preprocessing import MultiLabelBinarizer
 from transformers import BertTokenizer, BertModel
 from torch.optim import Adam
-from bundle.scorers.scorer_subtask_3 import _read_csv_input_file
+
 
 sys.path.append(
     os.getenv("MY_REPO_LOCATION")
 )  # enable importing from the root directory
 
+from bundle.scorers.scorer_subtask_3 import _read_csv_input_file
 from bundle.scorers.scorer_subtask_3 import *
 from bundle.baselines.st3 import *
 from models.helpers import *  # myb switch to helper. notation use to make it clear the source of the function
@@ -203,7 +204,7 @@ def predict(model, X, threshold=0.5):
     return sigmoid_output
 
 
-def second_main():
+if __name__ == "__main__":
     # TODO check and finish to run the class model
     parser = argparse.ArgumentParser(description="Subtask-3")
     parser.add_argument(
