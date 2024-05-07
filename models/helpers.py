@@ -44,5 +44,17 @@ def get_paths(language):
         "dev_labels": os.path.join(
             BASE_PATH, f"bundle/data/{language}/dev-labels-subtask-3.txt"
         ),
+        "train_predictions": os.path.join(
+            BASE_PATH, f"outputs/bert_baseline/{language}-train-predictions.txt"
+        ),
+        "train_metrics": os.path.join(
+            BASE_PATH, f"outputs/bert_baseline/{language}-train-metrics.txt"
+        ),
+        "dev_predictions": os.path.join(
+            BASE_PATH, f"outputs/bert_baseline/{language}-dev-predictions.txt"
+        ),
+        "dev_metrics": os.path.join(
+            BASE_PATH, f"outputs/bert_baseline/{language}-dev-metrics.txt"
+        ),
     }
     return paths

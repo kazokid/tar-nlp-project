@@ -12,15 +12,15 @@ from transformers import BertTokenizer, BertModel
 from torch.optim import Adam
 from bundle.scorers.scorer_subtask_3 import _read_csv_input_file
 
-# TODO check if this works
 sys.path.append(
-        os.getenv("MY_REPO_LOCATION")
+    os.getenv("MY_REPO_LOCATION")
 )  # enable importing from the root directory
 
 from bundle.scorers.scorer_subtask_3 import *
 from bundle.baselines.st3 import *
 from models.helpers import *  # myb switch to helper. notation use to make it clear the source of the function
 from models.model_preparation import *
+
 
 class BertBaseline(nn.Module):
     def __init__(self, language: str, num_classes: int) -> None:
@@ -37,28 +37,47 @@ class BertBaseline(nn.Module):
             torch.nn.BCEWithLogitsLoss()
         )  # check if this is the correct loss function
 
-        self.drop = torch.nn.Dropout(0.3)          # 0.3 - dont know what actually 0.3 means, one team has set the value to that
-        self.linear1 = torch.nn.Linear(self.bert_model.config.hidden_size, self.num_classes)
-        
+        self.drop = torch.nn.Dropout(
+            0.3
+        )  # 0.3 - dont know what actually 0.3 means, one team has set the value to that
+        self.linear1 = torch.nn.Linear(
+            self.bert_model.config.hidden_size, self.num_classes
+        )
+
     def added_parameters(self):
         """Returns the parameters of the model that need to be optimized - excluding the BERT model parameters"""
-        return list(self.linear1.parameters()) 
+        return list(self.linear1.parameters())
 
     def forward(self, x):
 
         input_ids, attention_mask, labels = x
 
         outputs = self.bert_model(input_ids, attention_mask=attention_mask)
-        last_hidden_states = outputs.last_hidden_state # [batch_size, max. sequence_length, size of hidden layer]
+        last_hidden_states = (
+            outputs.last_hidden_state
+        )  # [batch_size, max. sequence_length, size of hidden layer]
         print("Last hidden state shape: ", last_hidden_states.shape)
 
         drop = self.drop(last_hidden_states)
         linear_output = self.linear1(drop)
         print("Linear output shape: ", linear_output.shape)
-        
+
         return linear_output
 
-def model_pass(model, data_loader, indexes, multibin_decode, threshold, out_file_predictions, out_f_metrics, bool_train, params=list(), n_epochs=5, lr=1e-05):
+
+def model_pass(
+    model,
+    data_loader,
+    indexes,
+    multibin_decode,
+    threshold,
+    out_file_predictions,
+    out_f_metrics,
+    bool_train,
+    params=list(),
+    n_epochs=5,
+    lr=1e-05,
+):
     """
     Function to train or evaluate a model on a dataset and make predictions.
 
@@ -82,14 +101,14 @@ def model_pass(model, data_loader, indexes, multibin_decode, threshold, out_file
     """
 
     with open(out_file_predictions, "w") as f_predictions:
-            pass
+        pass
     with open(out_f_metrics, "w") as f_metrics:
-            f_metrics.write("Epoch\tAccuracy\tF1 Macro\tF1 Micro\n")
-    
+        f_metrics.write("Epoch\tAccuracy\tF1 Macro\tF1 Micro\n")
+
     if bool_train == True:
         model.train()  # set model to training mode, possibly useless (no dropout or batchnorm layers in this model)
     else:
-        model.eval() 
+        model.eval()
 
     optimizer = Adam(params, lr=lr)
     for epoch in range(n_epochs):
@@ -99,22 +118,23 @@ def model_pass(model, data_loader, indexes, multibin_decode, threshold, out_file
         total_examples_processed = 0
 
         for batch_num, batch in enumerate(data_loader):
-            
+
             if bool_train == True:
                 optimizer.zero_grad()
 
             input_ids, attention_mask, true_labels = batch
 
             Y_batch = true_labels.clone().detach().to(torch.float32)
-            batch_indexes = indexes[batch_num: batch_num + data_loader.batch_size]
+            batch_indexes = indexes[
+                batch_num : batch_num + data_loader.batch_size
+            ]
 
-            logits = model.forward((input_ids, attention_mask, None)) # output dim = [batch_size, max. sequence_length, number of classes]
+            logits = model.forward(
+                (input_ids, attention_mask, None)
+            )  # output dim = [batch_size, max. sequence_length, number of classes]
             print("Logits shape: ", logits.shape)
             print("Labels shape: ", Y_batch.shape)
-            loss = model.loss_function(
-                logits[:, -1, :],
-                Y_batch
-            )
+            loss = model.loss_function(logits[:, -1, :], Y_batch)
 
             if bool_train == True:
                 loss.backward()
@@ -124,29 +144,51 @@ def model_pass(model, data_loader, indexes, multibin_decode, threshold, out_file
             sigmoid_output[sigmoid_output >= threshold] = 1
             sigmoid_output[sigmoid_output < threshold] = 0
 
-            predictions = multibin_decode.inverse_transform(sigmoid_output.detach().numpy())
+            predictions = multibin_decode.inverse_transform(
+                sigmoid_output.detach().numpy()
+            )
             all_predictions.extend(predictions)
             all_labels.extend(true_labels)
 
             pred_list = list(map(lambda x: ",".join(x), predictions))
             df_pred = pd.DataFrame(pred_list, batch_indexes)
-            df_pred.to_csv(out_file_predictions, sep="\t", header=None, mode="a")
-            
-            total_loss += loss.item()
-            total_examples_processed += len(input_ids) 
+            df_pred.to_csv(
+                out_file_predictions, sep="\t", header=None, mode="a"
+            )
 
-            print(f"Epoch {epoch + 1}, Batch {batch_num + 1}, Examples Processed: {total_examples_processed}")
+            total_loss += loss.item()
+            total_examples_processed += len(input_ids)
+
+            print(
+                f"Epoch {epoch + 1}, Batch {batch_num + 1}, Examples Processed: {total_examples_processed}"
+            )
 
             print()
 
-        average_loss = total_loss / (len(data_loader.dataset) // data_loader.batch_size)
+        average_loss = total_loss / (
+            len(data_loader.dataset) // data_loader.batch_size
+        )
         accuracy = accuracy_score(all_labels, all_predictions)
-        f1_macro = f1_score(all_labels, all_predictions, average='macro')
-        f1_micro = f1_score(all_labels, all_predictions, average='micro')
+        f1_macro = f1_score(all_labels, all_predictions, average="macro")
+        f1_micro = f1_score(all_labels, all_predictions, average="micro")
 
-        out_f_metrics.write(f"{epoch + 1}\t{accuracy}\t{f1_macro}\t{f1_micro}\n")
+        out_f_metrics.write(
+            f"{epoch + 1}\t{accuracy}\t{f1_macro}\t{f1_micro}\n"
+        )
         # Is there a need to calculate the loss? -> I didn't write it down in .txt
-        print("Epoch:", epoch + 1, "Average Batch Loss:", average_loss, "Accuracy:", accuracy, "F1 Macro:", f1_macro, "F1 Micro:", f1_micro)
+        print(
+            "Epoch:",
+            epoch + 1,
+            "Average Batch Loss:",
+            average_loss,
+            "Accuracy:",
+            accuracy,
+            "F1 Macro:",
+            f1_macro,
+            "F1 Micro:",
+            f1_micro,
+        )
+
 
 # ne triba nam ovo?
 def predict(model, X, threshold=0.5):
@@ -170,113 +212,108 @@ def second_main():
         nargs=1,
         help="Language of the dataset (en, es, fr, ge, gr, it, ka, po, ru)",
     )
+
+    # todo move this to the helper method get_paths since it's a constant
     parser.add_argument(
-        "--techniques_file_path",
+        "techniques_file_path",
         type=str,
-        required=True, 
         help="Path to the file with the names of the techniques",
     )
 
     args = parser.parse_args()
     language = args.language[0]
+
     paths: dict = get_paths(language)
 
-    out_train_pred = os.path.join(
-        BASE_PATH, f"outputs/bert_baseline/{language}_train_predictions.txt"
-    )
-    # I don't know if out_true is necessary - I only saved the correct labels that we already have in the folder of each country
-    # I used it because when I was testing I only used the type of the first 100 lines correct
-    # of labels I saved there
-    out_true = os.path.join(
-        BASE_PATH, f"outputs/bert_baseline/{language}_output_true.txt"
-    )
-    out_train_metrics = os.path.join(
-        BASE_PATH, f"outputs/bert_baseline/{language}_train_metrics.txt"
-    )
-
-    out_dev_pred = os.path.join(
-        BASE_PATH, f"outputs/bert_baseline/{language}_dev_predictions.txt"
-    )
-    out_dev_true = os.path.join(
-        BASE_PATH, f"outputs/bert_baseline/{language}_dev_output_true.txt"
-    )
-    out_dev_metrics = os.path.join(
-        BASE_PATH, f"outputs/bert_baseline/{language}_dev_metrics.txt"
-    )
-
-
-    true_labels_train = os.path.join(
-        BASE_PATH, f"bandle/data/{language}/train-labels-subtask-3.txt"
-    )
-
-    true_labels_dev = os.path.join(
-        BASE_PATH, f"outputs/bert_baseline/{language}/dev-labels-subtask-3.txt"
-    )
-
-    classes = (
-        CLASSES_SUBTASK_3_PATH  # this never changes so we can use the constant
-    )
-    CLASSES = read_techniques_list_from_file(args.techniques_file_path)
+    CLASSES = read_techniques_list_from_file(CLASSES_SUBTASK_3_PATH)
 
     # label loading
-    labels_train = pd.read_csv(
+    train_labels = pd.read_csv(
         paths["train_labels"], sep="\t", encoding="utf-8", header=None
     )
-    labels_train = labels_train.rename(columns={0: "id", 1: "line", 2: "labels"})
-    labels_train = labels_train.set_index(["id", "line"])
+    train_labels = train_labels.rename(
+        columns={0: "id", 1: "line", 2: "labels"}
+    )
+    train_labels = train_labels.set_index(["id", "line"])
 
-    labels_dev = pd.read_csv(
+    dev_labels = pd.read_csv(
         paths["dev_labels"], sep="\t", encoding="utf-8", header=None
     )
-    labels_dev = labels_dev.rename(columns={0: "id", 1: "line", 2: "labels"})
-    labels_dev = labels_dev.set_index(["id", "line"])
+    dev_labels = dev_labels.rename(columns={0: "id", 1: "line", 2: "labels"})
+    dev_labels = dev_labels.set_index(["id", "line"])
 
     train = make_dataframe(paths["train_folder"], paths["train_labels"])
     dev = make_dataframe(paths["dev_folder"], paths["dev_labels"])
 
-    print("train['text']:\n", train['text'])
+    print("train['text']:\n", train["text"])
     print()
-    print("train['labels']\n", train['labels'])
+    print("train['labels']\n", train["labels"])
     print()
     # make_dataframe - vraca df gdje imamo 'text' i 'labels' columns
     # train['text'] -> sastoji se od multilabel index-a (article_id, row_id), a train['text'].values - nas tekst
     # ista stvar vrijedi za train['labels']
- 
-    # TODO 
+
+    # TODO
     # dataloader loading
     # vidjeti je li bolje raditi sa funkcijom create_dataloader ili ubaciti te 3 linije koda tu
     # prilikom kreiranja CustomDataset i koristenja tokenizer-a - vidjeti najbolji max length koji bi bio dobar za uzeti!!!
 
-    train_dataloader, train_hot_encoder = create_dataloader(train, "bert-base-multilingual-cased")
-    train_indx = train_dataloader.dataset.data.index   # dohvacanje indexa (article id, santence id) kako bi mogli spremiti predikcije za odredeni indeks
+    train_dataloader, train_hot_encoder = create_dataloader(
+        train, "bert-base-multilingual-cased"
+    )
+    train_indx = (
+        train_dataloader.dataset.data.index
+    )  # dohvacanje indexa (article id, santence id) kako bi mogli spremiti predikcije za odredeni indeks
 
-    dev_dataloader, dev_hot_encoder = create_dataloader(dev, "bert-base-multilingual-cased")
+    dev_dataloader, dev_hot_encoder = create_dataloader(
+        dev, "bert-base-multilingual-cased"
+    )
     dev_indx = dev_dataloader.dataset.data.index
 
     num_classes = len(train_hot_encoder.classes_)
     model = BertBaseline("en", num_classes)
     params = model.added_parameters()
 
-    # training 
-    model_pass(model, train_dataloader, train_indx, train_hot_encoder, 0.5, out_train_pred, out_train_metrics, True, params)
+    # training
+    model_pass(
+        model,
+        train_dataloader,
+        train_indx,
+        train_hot_encoder,
+        0.5,
+        paths["train_predictions"],
+        paths["train_metrics"],
+        True,
+        params,
+    )
 
     # evaluating
-    pred_labels_train = _read_csv_input_file(out_train_pred)    
-    gold_labels_train = _read_csv_input_file(true_labels_train)
+    pred_labels_train = _read_csv_input_file(paths["train_predictions"])
+    gold_labels_train = _read_csv_input_file(paths["train_labels"])
 
-    # TODO 
+    # TODO
     # nisam pokrenila model za cijeli dataset 'en'
     # vidjeti je li donje radi
-    # pred_labels_train - u ovom slucaju ce sadrzavati samo red za redom 
+    # pred_labels_train - u ovom slucaju ce sadrzavati samo red za redom
     #                       tj samo one redove za koje je model predvidio labelu
     #                       nece sadrzavati prazne redove tj redove sa indeksima za koje predikcija ne postoji
     #                       ? Mozda ce za evaluate trebati narpaviti file i sa redovima za koje predikcija labele ne postoji?
     evaluate(pred_labels_train, gold_labels_train, CLASSES)
 
-    # testing 
-    model_pass(model, labels_dev, dev_dataloader, dev_indx, dev_hot_encoder, 0.5, out_dev_pred, out_dev_metrics, False)
+    # testing
+    model_pass(
+        model,
+        dev_labels,
+        dev_dataloader,
+        dev_indx,
+        dev_hot_encoder,
+        0.5,
+        paths["dev_predictions"],
+        paths["dev_metrics"],
+        False,
+    )
 
     # evaluating
-    pred_labels_dev = _read_csv_input_file(out_dev_pred)    
-    gold_labels_dev = _read_csv_input_file(true_labels_dev)
+    pred_labels_dev = _read_csv_input_file(paths["dev_predictions"])
+    gold_labels_dev = _read_csv_input_file(paths["dev_labels"])
     evaluate(pred_labels_dev, gold_labels_dev, CLASSES)
