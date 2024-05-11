@@ -13,7 +13,7 @@ import bundle.baselines.st3 as bundle_baseline
 import models.helpers as helpers
 
 # Load pre-trained model and tokenizer
-model_name = "bert-base-multilingual-uncased"
+model_name = "bert-base-multilingual-cased"
 tokenizer = BertTokenizer.from_pretrained(model_name)
 model = BertModel.from_pretrained(model_name)
 
