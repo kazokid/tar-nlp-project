@@ -17,10 +17,10 @@ sys.path.append(
 )  # enable importing from the root directory
 
 from bundle.scorers.scorer_subtask_3 import _read_csv_input_file
-from bundle.scorers.scorer_subtask_3 import *
-from bundle.baselines.st3 import *
-from models.helpers import *  # myb switch to helper. notation use to make it clear the source of the function
-from models.model_preparation import *
+import bundle.scorers.scorer_subtask_3 as bundle_scorer
+import bundle.baselines.st3 as bundle_baseline
+import models.helpers as helpers
+import models.dataset_preparation as dataset_preparation
 
 
 class BertBaseline(nn.Module):
@@ -215,9 +215,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     language = args.language[0]
 
-    paths: dict = get_paths(language)
+    paths: dict = helpers.get_paths(language, "bert_baseline")
 
-    CLASSES = read_techniques_list_from_file(CLASSES_SUBTASK_3_PATH)
+    CLASSES = bundle_scorer.read_techniques_list_from_file(
+        helpers.CLASSES_SUBTASK_3_PATH
+    )
 
     # label loading
     train_labels = (
@@ -236,8 +238,12 @@ if __name__ == "__main__":
         .set_index(["id", "line"])
     )
 
-    train = make_dataframe(paths["train_folder"], paths["train_labels"])
-    dev = make_dataframe(paths["dev_folder"], paths["dev_labels"])
+    train = bundle_baseline.make_dataframe(
+        paths["train_folder"], paths["train_labels"]
+    )
+    dev = bundle_baseline.make_dataframe(
+        paths["dev_folder"], paths["dev_labels"]
+    )
 
     print("train['text']:\n", train["text"])
     print()
@@ -252,14 +258,14 @@ if __name__ == "__main__":
     # vidjeti je li bolje raditi sa funkcijom create_dataloader ili ubaciti te 3 linije koda tu
     # prilikom kreiranja CustomDataset i koristenja tokenizer-a - vidjeti najbolji max length koji bi bio dobar za uzeti!!!
 
-    train_dataloader, train_hot_encoder = create_dataloader(
+    train_dataloader, train_hot_encoder = dataset_preparation.create_dataloader(
         train, "bert-base-multilingual-cased"
     )
     train_indx = (
         train_dataloader.dataset.data.index
     )  # dohvacanje indexa (article id, santence id) kako bi mogli spremiti predikcije za odredeni indeks
 
-    dev_dataloader, dev_hot_encoder = create_dataloader(
+    dev_dataloader, dev_hot_encoder = dataset_preparation.create_dataloader(
         dev, "bert-base-multilingual-cased"
     )
     dev_indx = dev_dataloader.dataset.data.index
@@ -293,7 +299,7 @@ if __name__ == "__main__":
     #                       tj samo one redove za koje je model predvidio labelu
     #                       nece sadrzavati prazne redove tj redove sa indeksima za koje predikcija ne postoji
     #                       ? Mozda ce za evaluate trebati narpaviti file i sa redovima za koje predikcija labele ne postoji?
-    evaluate(pred_labels_train, gold_labels_train, CLASSES)
+    bundle_scorer.evaluate(pred_labels_train, gold_labels_train, CLASSES)
 
     # testing
     model_pass(
@@ -311,4 +317,4 @@ if __name__ == "__main__":
     # evaluating
     pred_labels_dev = _read_csv_input_file(paths["dev_predictions"])
     gold_labels_dev = _read_csv_input_file(paths["dev_labels"])
-    evaluate(pred_labels_dev, gold_labels_dev, CLASSES)
+    bundle_scorer.evaluate(pred_labels_dev, gold_labels_dev, CLASSES)

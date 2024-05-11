@@ -24,7 +24,7 @@ def get_articles_folder_path(language, type):
     )
 
 
-def get_paths(language):
+def get_paths(language, model_name="default_model"):
     """Function that constructs the train and dev paths for the given language
 
     Args:
@@ -45,16 +45,16 @@ def get_paths(language):
             BASE_PATH, f"bundle/data/{language}/dev-labels-subtask-3.txt"
         ),
         "train_predictions": os.path.join(
-            BASE_PATH, f"outputs/bert_baseline/{language}-train-predictions.txt"
+            BASE_PATH, f"outputs/{model_name}/{language}-train-predictions.txt"
         ),
         "train_metrics": os.path.join(
-            BASE_PATH, f"outputs/bert_baseline/{language}-train-metrics.txt"
+            BASE_PATH, f"outputs/{model_name}/{language}-train-metrics.txt"
         ),
         "dev_predictions": os.path.join(
-            BASE_PATH, f"outputs/bert_baseline/{language}-dev-predictions.txt"
+            BASE_PATH, f"outputs/{model_name}/{language}-dev-predictions.txt"
         ),
         "dev_metrics": os.path.join(
-            BASE_PATH, f"outputs/bert_baseline/{language}-dev-metrics.txt"
+            BASE_PATH, f"outputs/{model_name}/{language}-dev-metrics.txt"
         ),
     }
     return paths
