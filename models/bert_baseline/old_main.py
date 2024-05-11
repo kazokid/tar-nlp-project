@@ -153,7 +153,7 @@ from models.bert_baseline.bert_baseline import *
 #             copy_sig = sigmoid_output.clone()  # why clone?
 #             copy_sig[copy_sig >= 0.5] = 1
 #             copy_sig[copy_sig < 0.5] = 0
-#             # print("Y_batch_one_hot_labels:", Y_batch)
+#             # print("Y_batch_many_hot_labels:", Y_batch)
 #             # print(Y_batch.shape)
 #             # print(sigmoid_output.shape)
 #             """

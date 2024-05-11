@@ -21,11 +21,11 @@ class CustomDataset(Dataset):
         self.text_column = text_column
         self.label_column = label_column
         self.max_length = max_length
-        self.one_hot = MultiLabelBinarizer()
+        self.many_hot = MultiLabelBinarizer()
 
         # Apply one-hot encoding to labels
 
-        self.labels_encoded = self.one_hot.fit_transform(
+        self.labels_encoded = self.many_hot.fit_transform(
             self.data[label_column].fillna("").str.split(",").values
         ).tolist()  # remove the first column -it typically marks beginning of the sentece
         # MultiLabelBinarizer automatically determines the number of unique labels
@@ -38,7 +38,7 @@ class CustomDataset(Dataset):
             return []
 
     def multi_label_binarizer(self):
-        return self.one_hot
+        return self.many_hot
 
     def __len__(self):
         return len(self.data)

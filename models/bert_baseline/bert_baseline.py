@@ -87,7 +87,7 @@ def model_pass(
     model (nn.Module):                      The model to train or evaluate.
     data_loader (DataLoader):               DataLoader object containing the dataset.
     indexes (Multilabel):                   Indexes of sentences for which predictions are made (article_id, row_id).
-    multibin_decode (MultiLabelBinarizer):  MultiLabelBinarizer object for decoding one-hot vectors to label predictions.
+    multibin_decode (MultiLabelBinarizer):  MultiLabelBinarizer object for decoding many-hot vectors to label predictions.
     threshold (float):                      Threshold for sigmoid function.
     out_file_predictions (file):            File to write the predictions.
     out_f_metrics (file):                   File to write the evaluation metrics.
@@ -101,8 +101,8 @@ def model_pass(
     None
     """
 
-    with open(out_f_metrics, "w") as f_metrics:
-        f_metrics.write("Epoch\tAccuracy\tF1 Macro\tF1 Micro\n")
+    f_metrics = open(out_f_metrics, "w")
+    f_metrics.write("Epoch\tAccuracy\tF1 Macro\tF1 Micro\n")
 
     if bool_train == True:
         model.train()  # set model to training mode, possibly useless (no dropout or batchnorm layers in this model)
@@ -146,7 +146,7 @@ def model_pass(
             predictions = multibin_decode.inverse_transform(
                 sigmoid_output.detach().numpy()
             )
-            all_predictions.extend(predictions)
+            all_predictions.extend(sigmoid_output.detach().numpy())
             all_labels.extend(true_labels)
 
             pred_list = list(map(lambda x: ",".join(x), predictions))
@@ -159,7 +159,7 @@ def model_pass(
             total_examples_processed += len(input_ids)
 
             print(
-                f"Epoch {epoch + 1}, Batch {batch_num + 1}, Examples Processed: {total_examples_processed}"
+                f"Epoch {epoch + 1}, Batch {batch_num + 1}, Examples Processed: {total_examples_processed} of total {len(data_loader.dataset)}\n"
             )
 
             print()
@@ -171,9 +171,7 @@ def model_pass(
         f1_macro = f1_score(all_labels, all_predictions, average="macro")
         f1_micro = f1_score(all_labels, all_predictions, average="micro")
 
-        out_f_metrics.write(
-            f"{epoch + 1}\t{accuracy}\t{f1_macro}\t{f1_micro}\n"
-        )
+        f_metrics.write(f"{epoch + 1}\t{accuracy}\t{f1_macro}\t{f1_micro}\n")
         # Is there a need to calculate the loss? -> I didn't write it down in .txt
         print(
             "Epoch:",
@@ -187,6 +185,8 @@ def model_pass(
             "F1 Micro:",
             f1_micro,
         )
+    f_metrics.close()
+    return
 
 
 # ne triba nam ovo?
@@ -279,6 +279,7 @@ if __name__ == "__main__":
         paths["train_metrics"],
         True,
         params,
+        n_epochs=1,
     )
 
     # evaluating
