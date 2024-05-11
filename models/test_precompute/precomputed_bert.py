@@ -32,20 +32,17 @@ import pickle
 
 
 def main():
-    paths: dict = get_paths("en", "precomputed_bert")
+    paths: dict = get_paths("en", "precomputed_all_bert")
 
-    folder_train = paths["train_folder"]
     folder_dev = paths["dev_folder"]
-    labels_train_fn = paths["train_labels"]
     out_fn = paths["dev_predictions"]
 
     # Read Data
     print("Loading dataset...")
-    train = bundle_baseline.make_dataframe(folder_train, labels_train_fn)
     test = bundle_baseline.make_dataframe(folder_dev)
 
-    X_train = train["text"].values
-    Y_train = train["labels"].fillna("").str.split(",").values
+    with open("all_train_labels.pkl", "rb") as f:
+        Y_train = pickle.load(f)
 
     X_test = test["text"].values
 
@@ -55,7 +52,7 @@ def main():
     # Create train-test split
 
     # load train embeddings
-    with open("embeddings_train.pkl", "rb") as f:
+    with open("all_train_embeddings.pkl", "rb") as f:
         X_train = pickle.load(f)
 
     # load test embeddings
