@@ -18,7 +18,7 @@ tokenizer = BertTokenizer.from_pretrained(model_name)
 model = BertModel.from_pretrained(model_name)
 
 # Define paths
-paths: dict = helpers.get_paths("en", "pipeline_bert")
+paths: dict = helpers.get_paths("it", "precomputed_bert")
 
 folder_train = paths["train_folder"]
 folder_dev = paths["dev_folder"]
@@ -62,11 +62,11 @@ def get_embeddings(texts):
     return embeddings
 
 
-embeddings_train = get_embeddings(X_train)
-with open("embeddings_train.pkl", "wb") as f:
-    pickle.dump(embeddings_train, f)
+# embeddings_train = get_embeddings(X_train)
+# with open("embeddings_train.pkl", "wb") as f:
+#     pickle.dump(embeddings_train, f)
 
 embeddings_test = get_embeddings(X_test)
 # Save the embeddings to a file
-with open("embeddings_test.pkl", "wb") as f:
+with open("embeddings_it_cased_test.pkl", "wb") as f:
     pickle.dump(embeddings_test, f)

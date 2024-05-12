@@ -5,7 +5,7 @@ import sys
 import sklearn
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.pipeline import Pipeline
-from sklearn import svm
+from sklearn.svm import SVC
 from sklearn.metrics import classification_report as report
 from sklearn.feature_extraction.text import CountVectorizer
 import argparse
@@ -32,7 +32,7 @@ import pickle
 
 
 def main():
-    paths: dict = get_paths("en", "precomputed_all_bert")
+    paths: dict = get_paths("it", "precomputed_all_bert")
 
     folder_dev = paths["dev_folder"]
     out_fn = paths["dev_predictions"]
@@ -41,7 +41,7 @@ def main():
     print("Loading dataset...")
     test = bundle_baseline.make_dataframe(folder_dev)
 
-    with open("all_train_labels.pkl", "rb") as f:
+    with open("all_train_cased_labels.pkl", "rb") as f:
         Y_train = pickle.load(f)
 
     X_test = test["text"].values
@@ -52,11 +52,11 @@ def main():
     # Create train-test split
 
     # load train embeddings
-    with open("all_train_embeddings.pkl", "rb") as f:
+    with open("all_train_cased_embeddings.pkl", "rb") as f:
         X_train = pickle.load(f)
 
     # load test embeddings
-    with open("embeddings_test.pkl", "rb") as f:
+    with open("embeddings_it_cased_test.pkl", "rb") as f:
         X_test = pickle.load(f)
 
     print("Fitting logistic regression...")

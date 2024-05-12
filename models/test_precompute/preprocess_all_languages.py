@@ -70,8 +70,8 @@ for language in languages:
     all_embeddings.extend(embeddings)
     all_labels.extend(Y_train)
     # Save the embeddings and labels to a file
-    with open("all_train_embeddings.pkl", "wb") as f:
+    with open("all_train_cased_embeddings.pkl", "wb") as f:
         pickle.dump(all_embeddings, f)
 
-    with open("all_train_labels.pkl", "wb") as f:
+    with open("all_train_cased_labels.pkl", "wb") as f:
         pickle.dump(all_labels, f)
