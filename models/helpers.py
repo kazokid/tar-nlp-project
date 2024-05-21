@@ -1,6 +1,8 @@
 import os
 
 BASE_PATH = os.getenv("MY_REPO_LOCATION")
+if BASE_PATH is None:
+    raise ValueError("Please set the environment variable MY_REPO_LOCATION")
 CLASSES_SUBTASK_3_PATH = os.path.join(
     BASE_PATH, "bundle/scorers/techniques_subtask3.txt"
 )
