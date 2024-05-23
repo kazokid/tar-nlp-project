@@ -4,41 +4,47 @@ import bundle.baselines.st3 as st3
 import bundle.baselines.st2 as st2
 from models.helpers import *
 import pandas as pd
-from googletrans import Translator
+from easynmt import EasyNMT
 
 
-def make_dataframe(input_folder):
-    # MAKE TXT DATAFRAME
-    text = []
+# def make_dataframe(input_folder):
+#     # MAKE TXT DATAFRAME
+#     text = []
 
-    for fil in tqdm(
-        filter(lambda x: x.endswith(".txt"), os.listdir(input_folder))
-    ):
+#     for fil in tqdm(
+#         filter(lambda x: x.endswith(".txt"), os.listdir(input_folder))
+#     ):
 
-        iD, txt = (
-            fil[7:].split(".")[0],
-            open(input_folder + fil, "r", encoding="utf-8").read(),
-        )
-        text.append((iD, txt))
+#         iD, txt = (
+#             fil[7:].split(".")[0],
+#             open(input_folder + fil, "r", encoding="utf-8").read(),
+#         )
+#         text.append((iD, txt))
 
-    df_text = pd.DataFrame(text, columns=["id", "text"])
-    df = df_text
+#     df_text = pd.DataFrame(text, columns=["id", "text"])
+#     df = df_text
 
-    return df
+#     return df
 
 
-def row_translator_st3(row, translator: Translator, logger):
-    translation = None
+def row_translator_st3(row, model: EasyNMT, logger, lang):
     try:
-        translator.raise_Exception = True
-        translation = translator.translate(row["text"], dest="en")
+        # TODO this might raise an exception because of the auto detection of the language
+
+        print(row["text"])
+        translation = model.translate(
+            row["text"],
+            target_lang="en",
+            source_lang="fr",
+            show_progress_bar=True,
+        )
 
         if translation is not None:
             return pd.Series(
                 {
                     "id": row["id"],
                     "line": row["line"],
-                    "text": translation.text,
+                    "text": translation,
                 }
             )
         else:
@@ -46,14 +52,14 @@ def row_translator_st3(row, translator: Translator, logger):
                 f"Error translating article id:{row.id} row: {row.line}: Translation is None"
             )
             return None
+
     except Exception as e:
         logger.error(
             f"Error translating article id:{row.id} row: {row.line}: {e}"
         )
         logger.error(
-            f"\nThis is the text:{row.text}\nThis is the translation object: {translation}"
+            f"\nThis is the text:{row.text}\nThis is the translated text: {translation}"
         )
-        # logger.info("Retrying translation")
 
         return None
 
@@ -98,9 +104,8 @@ data_type = ["train", "dev", "test"]
 for lang in all_languages:
     for type in data_type:
         logger = get_logger(f"st3_{lang}_{type}_translation")
-        if lang in languages_only_test:
-            if type != "test":
-                continue
+        if lang in languages_only_test and type != "test":
+            continue
 
         paths_st3 = get_paths(lang)
 
@@ -133,16 +138,17 @@ for lang in all_languages:
         # Translating the subtask 3 data in batches of 100
 
         for i in range(0, len(df), 100):
-            batch = df.iloc[i : i + 100]
+            # batch = df.iloc[i : i + 100]
+            batch = df.iloc[0]
 
-            translator = Translator(raise_exception=True)
+            model = EasyNMT("m2m_100_418M", cache_folder=BASE_PATH)
 
-            # I want to make sure there were no timeouts or None values in the translation
+            # df_translated = batch.apply(
+            #     lambda row: row_translator_st3(row, model, logger),
+            #     axis=1,
+            # )
 
-            df_translated = batch.apply(
-                lambda row: row_translator_st3(row, translator, logger),
-                axis=1,
-            )
+            df_translated = row_translator_st3(batch, model, logger, lang)
 
             with open(
                 f"data_translated/{lang}/{type}_st3_translated.txt", "a"
@@ -158,7 +164,7 @@ for lang in all_languages:
             logger.info(f"Translated {i + 100} out of {df.shape[0]} lines")
 
 
-# subtask 2; ignore this, we don't need it
+# subtask 2; ignore this, we don't need it for now
 
 # for lang in all_languages:
 #     for type in data_type:
