@@ -138,17 +138,17 @@ for lang in all_languages:
         # Translating the subtask 3 data in batches of 100
 
         for i in range(0, len(df), 100):
-            # batch = df.iloc[i : i + 100]
-            batch = df.iloc[0]
+            batch = df.iloc[i : i + 100]
+            # batch = df.iloc[0]
 
             model = EasyNMT("m2m_100_418M", cache_folder=BASE_PATH)
 
-            # df_translated = batch.apply(
-            #     lambda row: row_translator_st3(row, model, logger),
-            #     axis=1,
-            # )
-
-            df_translated = row_translator_st3(batch, model, logger, lang)
+            df_translated = batch.apply(
+                lambda row: row_translator_st3(row, model, logger),
+                axis=1,
+            )
+            # i tried to use row translate on a single row but it still did not work
+            # df_translated = row_translator_st3(batch, model, logger, lang)
 
             with open(
                 f"data_translated/{lang}/{type}_st3_translated.txt", "a"
