@@ -27,7 +27,7 @@ def make_dataframe(input_folder):
     return df
 
 
-def row_translator_st3(row, translator, logger):
+def row_translator_st3(row, translator: Translator, logger):
     translation = None
     try:
         translator.raise_Exception = True
@@ -53,38 +53,39 @@ def row_translator_st3(row, translator, logger):
         logger.error(
             f"\nThis is the text:{row.text}\nThis is the translation object: {translation}"
         )
-        logger.info("Retrying translation")
+        # logger.info("Retrying translation")
 
         return None
 
 
-def row_translator_st2(row, translator, logger):
-    translation = None
+# def row_translator_st2(row, translator, logger):
+#     """TODO:ignore"""
+#     translation = None
 
-    try:
+#     try:
 
-        translator.raise_Exception = True
-        translation = translator.translate(row["text"], dest="en")
+#         translator.raise_Exception = True
+#         translation = translator.translate(row["text"], dest="en")
 
-        if translation is not None:
-            return pd.Series(
-                {
-                    "id": row["id"],
-                    "text": translation.text,
-                }
-            )
-        else:
-            logger.error(
-                f"Error translating article id:{row.id}\nThis is the text: {row.text}\nThis is the translation: {translation}"
-            )
-            return None
+#         if translation is not None:
+#             return pd.Series(
+#                 {
+#                     "id": row["id"],
+#                     "text": translation.text,
+#                 }
+#             )
+#         else:
+#             logger.error(
+#                 f"Error translating article id:{row.id}\nThis is the text: {row.text}\nThis is the translation: {translation}"
+#             )
+#             return None
 
-    except Exception as e:
-        # TODO implement a retry mechanism
-        logger.error(
-            f"Error translating article id:{row.id}\nThis is the text: {row.text}\nThis is the translation: {translation}\nERROR:{e}"
-        )
-        return None
+#     except Exception as e:
+#         # TODO implement a retry mechanism
+#         logger.error(
+#             f"Error translating article id:{row.id}\nThis is the text: {row.text}\nThis is the translation: {translation}\nERROR:{e}"
+#         )
+#         return None
 
 
 languages_train = ["fr", "ge", "it", "po", "ru"]
@@ -157,38 +158,38 @@ for lang in all_languages:
             logger.info(f"Translated {i + 100} out of {df.shape[0]} lines")
 
 
-# subtask 2
+# subtask 2; ignore this, we don't need it
 
-for lang in all_languages:
-    for type in data_type:
-        logger = get_logger(f"st2_{lang}_{type}_translation")
-        if lang in languages_only_test:
-            if type != "test":
-                continue
+# for lang in all_languages:
+#     for type in data_type:
+#         logger = get_logger(f"st2_{lang}_{type}_translation")
+#         if lang in languages_only_test:
+#             if type != "test":
+#                 continue
 
-        paths_st2 = get_paths(lang)
+#         paths_st2 = get_paths(lang)
 
-        df = make_dataframe(paths_st2[f"{type}_folder"])
+#         df = make_dataframe(paths_st2[f"{type}_folder"])
 
-        print(df)
+#         print(df)
 
-        folder = f"data_translated/{lang}/{type}-articles-subtask-2"
-        os.makedirs(folder, exist_ok=True)
+#         folder = f"data_translated/{lang}/{type}-articles-subtask-2"
+#         os.makedirs(folder, exist_ok=True)
 
-        for i in range(0, len(df)):
-            article = df.iloc[i]
+#         for i in range(0, len(df)):
+#             article = df.iloc[i]
 
-            translator = Translator()
+#             translator = Translator()
 
-            print(f"the row is {article}")
+#             print(f"the row is {article}")
 
-            translated_article = row_translator_st2(article, translator, logger)
+#             translated_article = row_translator_st2(article, translator, logger)
 
-            if translated_article is not None:
-                with open(f"{folder}/article{article.id}.txt", "w") as file:
-                    text = translated_article.text
-                    file.write(text)
+#             if translated_article is not None:
+#                 with open(f"{folder}/article{article.id}.txt", "w") as file:
+#                     text = translated_article.text
+#                     file.write(text)
 
-                logger.info(f"Translated {i} out of {df.shape[0]} articles")
-            else:
-                logger.error(f"Error translating article id:{article.id}")
+#                 logger.info(f"Translated {i} out of {df.shape[0]} articles")
+#             else:
+#                 logger.error(f"Error translating article id:{article.id}")
