@@ -28,35 +28,62 @@ def make_dataframe(input_folder):
 
 
 def row_translator_st3(row, translator, logger):
+    translation = None
     try:
-        translation = translator.translate(row["text"], dest="en").text
+        translator.raise_Exception = True
+        translation = translator.translate(row["text"], dest="en")
 
-        return pd.Series(
-            {
-                "id": row["id"],
-                "line": row["line"],
-                "text": translation,
-            }
-        )
+        if translation is not None:
+            return pd.Series(
+                {
+                    "id": row["id"],
+                    "line": row["line"],
+                    "text": translation.text,
+                }
+            )
+        else:
+            logger.error(
+                f"Error translating article id:{row.id} row: {row.line}: Translation is None"
+            )
+            return None
     except Exception as e:
         logger.error(
             f"Error translating article id:{row.id} row: {row.line}: {e}"
         )
+        logger.error(
+            f"\nThis is the text:{row.text}\nThis is the translation object: {translation}"
+        )
+        logger.info("Retrying translation")
+
         return None
 
 
 def row_translator_st2(row, translator, logger):
+    translation = None
+
     try:
 
-        translation = translator.translate(row["text"], dest="en").text
-        return pd.Series(
-            {
-                "id": row["id"],
-                "text": translation,
-            }
-        )
+        translator.raise_Exception = True
+        translation = translator.translate(row["text"], dest="en")
+
+        if translation is not None:
+            return pd.Series(
+                {
+                    "id": row["id"],
+                    "text": translation.text,
+                }
+            )
+        else:
+            logger.error(
+                f"Error translating article id:{row.id}\nThis is the text: {row.text}\nThis is the translation: {translation}"
+            )
+            return None
+
     except Exception as e:
-        logger.error(f"Error translating article id:{row.id}: {e}")
+        # TODO implement a retry mechanism
+        logger.error(
+            f"Error translating article id:{row.id}\nThis is the text: {row.text}\nThis is the translation: {translation}\nERROR:{e}"
+        )
         return None
 
 
@@ -107,7 +134,9 @@ for lang in all_languages:
         for i in range(0, len(df), 100):
             batch = df.iloc[i : i + 100]
 
-            translator = Translator()
+            translator = Translator(raise_exception=True)
+
+            # I want to make sure there were no timeouts or None values in the translation
 
             df_translated = batch.apply(
                 lambda row: row_translator_st3(row, translator, logger),
@@ -121,7 +150,7 @@ for lang in all_languages:
                     file,
                     index=False,
                     header=False,
-                    quoting=csv.QUOTE_NONE,
+                    quoting=csv.QUOTE_MINIMAL,
                     sep="\t",
                 )
 
