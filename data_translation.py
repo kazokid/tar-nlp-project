@@ -66,66 +66,66 @@ all_languages = languages_train + languages_only_test
 
 data_type = ["train", "dev", "test"]
 
-# # subtask 3
-# for lang in all_languages:
-#     for type in data_type:
-#         logger = get_logger(f"st3_{lang}_{type}_translation")
-#         if lang in languages_only_test:
-#             if type != "test":
-#                 continue
+# subtask 3
+for lang in all_languages:
+    for type in data_type:
+        logger = get_logger(f"st3_{lang}_{type}_translation")
+        if lang in languages_only_test:
+            if type != "test":
+                continue
 
-#         paths_st3 = get_paths(lang)
+        paths_st3 = get_paths(lang)
 
-#         text = []
+        text = []
 
-#         with open(
-#             paths_st3[f"{type}_template"],
-#             "r",
-#             encoding="utf-8",
-#         ) as file:
-#             lines = file.read().splitlines()
-#             for line in lines:
-#                 split_line = line.split("\t")
-#                 iD = split_line[0]
-#                 line_number = split_line[1]
-#                 line_text = split_line[2]
-#                 text.append((iD, line_number, line_text))
+        with open(
+            paths_st3[f"{type}_template"],
+            "r",
+            encoding="utf-8",
+        ) as file:
+            lines = file.read().splitlines()
+            for line in lines:
+                split_line = line.split("\t")
+                iD = split_line[0]
+                line_number = split_line[1]
+                line_text = split_line[2]
+                text.append((iD, line_number, line_text))
 
-#         df = pd.DataFrame(text, columns=["id", "line", "text"])
-#         print(df)
-#         df.id = df.id.apply(int)
-#         df.line = df.line.apply(int)
-#         df = df[df.text.str.strip().str.len() > 0].copy()
+        df = pd.DataFrame(text, columns=["id", "line", "text"])
+        print(df)
+        df.id = df.id.apply(int)
+        df.line = df.line.apply(int)
+        df = df[df.text.str.strip().str.len() > 0].copy()
 
-#         os.makedirs(f"data_translated/{lang}/", exist_ok=True)
+        os.makedirs(f"data_translated/{lang}/", exist_ok=True)
 
-#         if os.path.exists(f"data_translated/{lang}/{type}_st3_translated.txt"):
-#             os.remove(f"data_translated/{lang}/{type}_st3_translated.txt")
+        if os.path.exists(f"data_translated/{lang}/{type}_st3_translated.txt"):
+            os.remove(f"data_translated/{lang}/{type}_st3_translated.txt")
 
-#         # Translating the subtask 3 data in batches of 100
+        # Translating the subtask 3 data in batches of 100
 
-#         for i in range(0, len(df), 100):
-#             batch = df.iloc[i : i + 100]
+        for i in range(0, len(df), 100):
+            batch = df.iloc[i : i + 100]
 
-#             translator = Translator()
+            translator = Translator()
 
-#             df_translated = batch.apply(
-#                 lambda row: row_translator_st3(row, translator, logger),
-#                 axis=1,
-#             )
+            df_translated = batch.apply(
+                lambda row: row_translator_st3(row, translator, logger),
+                axis=1,
+            )
 
-#             with open(
-#                 f"data_translated/{lang}/{type}_st3_translated.txt", "a"
-#             ) as file:
-#                 df_translated.to_csv(
-#                     file,
-#                     index=False,
-#                     header=False,
-#                     quoting=csv.QUOTE_NONE,
-#                     sep="\t",
-#                 )
+            with open(
+                f"data_translated/{lang}/{type}_st3_translated.txt", "a"
+            ) as file:
+                df_translated.to_csv(
+                    file,
+                    index=False,
+                    header=False,
+                    quoting=csv.QUOTE_NONE,
+                    sep="\t",
+                )
 
-#             logger.info(f"Translated {i + 100} out of {df.shape[0]} lines")
+            logger.info(f"Translated {i + 100} out of {df.shape[0]} lines")
 
 
 # subtask 2
