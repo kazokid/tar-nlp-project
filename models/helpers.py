@@ -2,9 +2,15 @@ import os
 import logging
 import datetime
 
-BASE_PATH = os.getenv("MY_REPO_LOCATION")
-if BASE_PATH is None:
-    raise ValueError("Please set the environment variable MY_REPO_LOCATION")
+BASE_PATH = (
+    __file__.replace("\\", "/").split("tar-nlp-project")[0] + "tar-nlp-project/"
+)
+
+# BASE_PATH = os.getenv("MY_REPO_LOCATION") #this should be removed if the above works
+# if BASE_PATH is None:
+#     raise ValueError("Please set the environment variable MY_REPO_LOCATION")
+
+
 CLASSES_SUBTASK_3_PATH = os.path.join(
     BASE_PATH, "bundle/scorers/techniques_subtask3.txt"
 )

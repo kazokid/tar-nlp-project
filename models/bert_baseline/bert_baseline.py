@@ -11,10 +11,11 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from transformers import BertTokenizer, BertModel
 from torch.optim import Adam
 
+BASE_PATH = (
+    __file__.replace("\\", "/").split("tar-nlp-project")[0] + "tar-nlp-project/"
+)
 
-sys.path.append(
-    os.getenv("MY_REPO_LOCATION")
-)  # enable importing from the root directory
+sys.path.append(BASE_PATH)  # enable importing from the root directory
 
 from bundle.scorers.scorer_subtask_3 import _read_csv_input_file
 import bundle.scorers.scorer_subtask_3 as bundle_scorer

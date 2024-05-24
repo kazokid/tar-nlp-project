@@ -5,9 +5,11 @@ import os
 import sys
 from tqdm import tqdm
 
-sys.path.append(
-    os.getenv("MY_REPO_LOCATION")
-)  # enable importing from the root directory
+BASE_PATH = (
+    __file__.replace("\\", "/").split("tar-nlp-project")[0] + "tar-nlp-project/"
+)
+
+sys.path.append(BASE_PATH)  # enable importing from the root directory
 
 import bundle.baselines.st3 as bundle_baseline
 import models.helpers as helpers
