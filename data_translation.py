@@ -35,7 +35,7 @@ def row_translator_st3(row, model: EasyNMT, logger, lang):
         translation = model.translate(
             row["text"],
             target_lang="en",
-            source_lang="fr",
+            source_lang=lang,
             show_progress_bar=True,
         )
 
@@ -64,34 +64,29 @@ def row_translator_st3(row, model: EasyNMT, logger, lang):
         return None
 
 
-# def row_translator_st2(row, translator, logger):
-#     """TODO:ignore"""
-#     translation = None
+def make_dataframe_template(path: str):
+    text = []
 
-#     try:
+    with open(
+        path,
+        "r",
+        encoding="utf-8",
+    ) as file:
+        lines = file.read().splitlines()
+        for line in lines:
+            split_line = line.split("\t")
+            iD = split_line[0]
+            line_number = split_line[1]
+            line_text = split_line[2]
+            text.append((iD, line_number, line_text))
 
-#         translator.raise_Exception = True
-#         translation = translator.translate(row["text"], dest="en")
-
-#         if translation is not None:
-#             return pd.Series(
-#                 {
-#                     "id": row["id"],
-#                     "text": translation.text,
-#                 }
-#             )
-#         else:
-#             logger.error(
-#                 f"Error translating article id:{row.id}\nThis is the text: {row.text}\nThis is the translation: {translation}"
-#             )
-#             return None
-
-#     except Exception as e:
-#         # TODO implement a retry mechanism
-#         logger.error(
-#             f"Error translating article id:{row.id}\nThis is the text: {row.text}\nThis is the translation: {translation}\nERROR:{e}"
-#         )
-#         return None
+    df = pd.DataFrame(text, columns=["id", "line", "text"])
+    print("DF loaded from path: " + path)
+    print(df)
+    df.id = df.id.apply(int)
+    df.line = df.line.apply(int)
+    df = df[df.text.str.strip().str.len() > 0].copy()
+    return df
 
 
 languages_train = ["fr", "ge", "it", "po", "ru"]
@@ -100,7 +95,20 @@ all_languages = languages_train + languages_only_test
 
 data_type = ["train", "dev", "test"]
 
+lang_mapping = {  # assumed mapping of languages to their language codes
+    "fr": "fr",
+    "ge": "de",
+    "it": "it",
+    "po": "pl",
+    "ru": "ru",
+    "es": "es",
+    "gr": "el",
+    "ka": "ka",
+}
+
 # subtask 3
+model = EasyNMT("m2m_100_418M", cache_folder=BASE_PATH)
+
 for lang in all_languages:
     for type in data_type:
         logger = get_logger(f"st3_{lang}_{type}_translation")
@@ -109,31 +117,32 @@ for lang in all_languages:
 
         paths_st3 = get_paths(lang)
 
-        text = []
-
-        with open(
-            paths_st3[f"{type}_template"],
-            "r",
-            encoding="utf-8",
-        ) as file:
-            lines = file.read().splitlines()
-            for line in lines:
-                split_line = line.split("\t")
-                iD = split_line[0]
-                line_number = split_line[1]
-                line_text = split_line[2]
-                text.append((iD, line_number, line_text))
-
-        df = pd.DataFrame(text, columns=["id", "line", "text"])
-        print(df)
-        df.id = df.id.apply(int)
-        df.line = df.line.apply(int)
-        df = df[df.text.str.strip().str.len() > 0].copy()
+        df = make_dataframe_template(paths_st3[f"{type}_template"])
 
         os.makedirs(f"data_translated/{lang}/", exist_ok=True)
 
         if os.path.exists(f"data_translated/{lang}/{type}_st3_translated.txt"):
-            os.remove(f"data_translated/{lang}/{type}_st3_translated.txt")
+            existing_df = make_dataframe_template(
+                f"data_translated/{lang}/{type}_st3_translated.txt"
+            )
+            # copy lines for last translated article
+            last_article_id = existing_df.id.iloc[-1]
+            last_article_translated_rows = existing_df[
+                existing_df.id == last_article_id
+            ].copy()
+            last_article_original_rows = df[df.id == last_article_id].copy()
+            # remove last article from df
+            df = df[~df.id.isin(existing_df.id)].copy()
+            last_article_not_translated_rows = last_article_original_rows[
+                ~last_article_original_rows.line.isin(
+                    last_article_translated_rows.line
+                )
+            ].copy()
+            df = pd.concat(
+                [df, last_article_not_translated_rows], ignore_index=True
+            )
+
+            # os.remove(f"data_translated/{lang}/{type}_st3_translated.txt") # not removing, just picking up where it left off
 
         # Translating the subtask 3 data in batches of 100
 
@@ -141,27 +150,41 @@ for lang in all_languages:
             batch = df.iloc[i : i + 100]
             # batch = df.iloc[0]
 
-            model = EasyNMT("m2m_100_418M", cache_folder=BASE_PATH)
-
             df_translated = batch.apply(
-                lambda row: row_translator_st3(row, model, logger),
+                lambda row: row_translator_st3(
+                    row, model, logger, lang=lang_mapping[lang]
+                ),
                 axis=1,
             )
             # i tried to use row translate on a single row but it still did not work
             # df_translated = row_translator_st3(batch, model, logger, lang)
+            try:
+                with open(
+                    f"data_translated/{lang}/{type}_st3_translated.txt",
+                    "a",
+                    newline="",
+                    encoding="utf-8",
+                ) as file:
+                    df_translated.to_csv(
+                        file,
+                        index=False,
+                        header=False,
+                        quoting=csv.QUOTE_MINIMAL,
+                        sep="\t",
+                        encoding="utf-8",
+                    )
 
-            with open(
-                f"data_translated/{lang}/{type}_st3_translated.txt", "a"
-            ) as file:
-                df_translated.to_csv(
-                    file,
-                    index=False,
-                    header=False,
-                    quoting=csv.QUOTE_MINIMAL,
-                    sep="\t",
-                )
-
-            logger.info(f"Translated {i + 100} out of {df.shape[0]} lines")
+                logger.info(f"Translated {i + 100} out of {df.shape[0]} lines")
+            except Exception as e:
+                logger.error(f"Error writing to file: {e}")
+                with open(
+                    f"data_translated/{lang}/{type}_st3_translated_error.txt",
+                    "a",
+                    newline="",
+                    encoding="utf-8",
+                ) as file:
+                    for row in df_translated:
+                        file.write(f"{row.id}\t{row.line}\t{row.text}\n")
 
 
 # subtask 2; ignore this, we don't need it for now
