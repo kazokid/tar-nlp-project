@@ -139,7 +139,7 @@ for lang in all_languages:
                 )
             ].copy()
             df = pd.concat(
-                [df, last_article_not_translated_rows], ignore_index=True
+                [last_article_not_translated_rows, df], ignore_index=True
             )
 
             # os.remove(f"data_translated/{lang}/{type}_st3_translated.txt") # not removing, just picking up where it left off
