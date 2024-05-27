@@ -2,9 +2,15 @@ import os
 import logging
 import datetime
 
-BASE_PATH = os.getenv("MY_REPO_LOCATION")
-if BASE_PATH is None:
-    raise ValueError("Please set the environment variable MY_REPO_LOCATION")
+BASE_PATH = (
+    __file__.replace("\\", "/").split("tar-nlp-project")[0] + "tar-nlp-project/"
+)
+
+# BASE_PATH = os.getenv("MY_REPO_LOCATION") #this should be removed if the above works
+# if BASE_PATH is None:
+#     raise ValueError("Please set the environment variable MY_REPO_LOCATION")
+
+
 CLASSES_SUBTASK_3_PATH = os.path.join(
     BASE_PATH, "bundle/scorers/techniques_subtask3.txt"
 )
@@ -126,13 +132,16 @@ def get_logger(logger_name):
     logger = logging.getLogger(logger_name)
     log_file = f"logger/{logger_name}.log"
 
-    logging.basicConfig(
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        filename=log_file,
-        encoding="utf-8",
-        level=logging.INFO,
-        filemode="w",
-    )
+    logger.setLevel(logging.INFO)
+
+    if not logger.handlers:
+        f_handler = logging.FileHandler(log_file, mode="w")
+        f_handler.setLevel(logging.INFO)
+        f_format = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        f_handler.setFormatter(f_format)
+        logger.addHandler(f_handler)
 
     return logger
