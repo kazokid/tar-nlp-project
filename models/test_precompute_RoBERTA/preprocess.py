@@ -6,9 +6,11 @@ import sys
 from tqdm import tqdm
 
 
-sys.path.append(
-    os.getenv("MY_REPO_LOCATION")
-)  # enable importing from the root directory
+BASE_PATH = (
+    __file__.replace("\\", "/").split("tar-nlp-project")[0] + "tar-nlp-project/"
+)
+
+sys.path.append(BASE_PATH)  # enable importing from the root directory
 
 
 import bundle.baselines.st3 as bundle_baseline
@@ -68,7 +70,7 @@ embeddings_train = get_embeddings(X_train)
 with open("embeddings_en_train.pkl", "wb") as f:
     pickle.dump(embeddings_train, f)
 
-#embeddings_test = get_embeddings(X_test)
+# embeddings_test = get_embeddings(X_test)
 # Save the embeddings to a file
-#with open("embeddings_en_RoBERTA_dev.pkl", "wb") as f:
+# with open("embeddings_en_RoBERTA_dev.pkl", "wb") as f:
 #    pickle.dump(embeddings_test, f)
