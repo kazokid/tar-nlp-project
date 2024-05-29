@@ -29,13 +29,13 @@ class BertBaseline(nn.Module):
     def __init__(self, embeddings_dimension: int, num_classes: int) -> None:
         super().__init__()
 
-        self.linear1 = torch.nn.Linear(embeddings_dimension, 300)
-        self.linear2 = torch.nn.Linear(300, num_classes)
+        self.linear1 = torch.nn.Linear(embeddings_dimension, num_classes)
+        # self.linear2 = torch.nn.Linear(300, num_classes)
 
     def forward(self, x):
         x = self.linear1(x)
-        x = torch.relu(x)
-        x = self.linear2(x)
+        # x = torch.relu(x)
+        # x = self.linear2(x)
 
         return x
 

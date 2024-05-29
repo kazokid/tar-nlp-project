@@ -13,7 +13,7 @@ BASE_PATH = (
 # if BASE_PATH is None:
 #     raise ValueError("Please set the environment variable MY_REPO_LOCATION")
 
-languages_train = ["fr", "ge", "it", "po", "ru"]
+languages_train = ["en", "fr", "ge", "it", "po", "ru"]
 languages_only_test = ["es", "gr", "ka"]
 all_languages = languages_train + languages_only_test
 

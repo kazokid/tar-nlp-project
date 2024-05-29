@@ -70,13 +70,13 @@ def make_dataframe_template(path: str):
     return df
 
 
-languages_train = ["fr", "ge", "it", "po", "ru"]
+languages_train = ["en", "fr", "ge", "it", "po", "ru"]
 languages_only_test = ["es", "gr", "ka"]
 all_languages = languages_train + languages_only_test
 
 data_type = ["train", "dev", "test"]
 
-for lang in all_languages:
+for lang in ["en"]:
     for type in data_type:
         if lang in languages_only_test and type != "test":
             continue
