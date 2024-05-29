@@ -1,6 +1,9 @@
 import os
 import logging
-import datetime
+import pandas as pd
+from tqdm import tqdm
+import os
+import torch
 
 BASE_PATH = (
     __file__.replace("\\", "/").split("tar-nlp-project")[0] + "tar-nlp-project/"
@@ -101,6 +104,18 @@ def get_paths(language, model_name="default_model", subtask=3):
         "test_template": os.path.join(
             BASE_PATH,
             f"bundle/data/{language}/test-labels-subtask-{subtask}.template",
+        ),
+        "train_template_translated": os.path.join(
+            BASE_PATH,
+            f"data_translated/{language}/train_st{subtask}_translated.txt",
+        ),
+        "dev_template_translated": os.path.join(
+            BASE_PATH,
+            f"data_translated/{language}/dev_st{subtask}_translated.txt",
+        ),
+        "test_template_translated": os.path.join(
+            BASE_PATH,
+            f"data_translated/{language}/test_st{subtask}_translated.txt",
         ),
         "train_predictions": os.path.join(
             BASE_PATH, f"outputs/{model_name}/{language}-train-predictions.txt"

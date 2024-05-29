@@ -1,8 +1,9 @@
-from transformers import BertTokenizer, BertModel
+from transformers import AutoTokenizer, AutoModelForMaskedLM
 import torch
 import pickle
 import sys
 from tqdm import tqdm
+import pandas as pd
 
 BASE_PATH = (
     __file__.replace("\\", "/").split("tar-nlp-project")[0] + "tar-nlp-project/"
@@ -13,25 +14,45 @@ sys.path.append(BASE_PATH)  # enable importing from the root directory
 import bundle.baselines.st3 as bundle_baseline
 import models.helpers as helpers
 
-# Load pre-trained model and tokenizer
-model_name = "bert-base-multilingual-cased"
-tokenizer = BertTokenizer.from_pretrained(model_name)
-model = BertModel.from_pretrained(model_name)
+print("Loading model and tokenizer...")
+tokenizer = AutoTokenizer.from_pretrained("launch/POLITICS")
+model = AutoModelForMaskedLM.from_pretrained("launch/POLITICS")
+
+
+def make_dataframe_template(path: str):
+    text = []
+
+    with open(
+        path,
+        "r",
+        encoding="utf-8",
+    ) as file:
+        lines = file.read().splitlines()
+        for line in lines:
+            split_line = line.split("\t")
+            iD = split_line[0]
+            line_number = split_line[1]
+            line_text = split_line[2]
+            text.append((iD, line_number, line_text))
+
+    df = pd.DataFrame(text, columns=["id", "line", "text"])
+    print("DF loaded from path: " + path)
+    print(df)
+    df.id = df.id.apply(int)
+    df.line = df.line.apply(int)
+    df = df[df.text.str.strip().str.len() > 0].copy()
+    df = df.set_index(["id", "line"])
+    return df
+
 
 # Define paths
-paths: dict = helpers.get_paths("it", "precomputed_bert")
+paths: dict = helpers.get_paths("en", "precomputed_POLITICS")
 
-folder_train = paths["train_folder"]
-folder_dev = paths["dev_folder"]
-labels_train_fn = paths["train_labels"]
-out_fn = paths["dev_predictions"]
+translated_dev = paths["dev_template_translated"]
 
 # Read Data
 print("Loading dataset...")
-train = bundle_baseline.make_dataframe(folder_train, labels_train_fn)
-test = bundle_baseline.make_dataframe(folder_dev)
-
-X_train = train["text"].values
+test = make_dataframe_template(translated_dev)
 
 X_test = test["text"].values
 
@@ -63,11 +84,8 @@ def get_embeddings(texts):
     return embeddings
 
 
-# embeddings_train = get_embeddings(X_train)
-# with open("embeddings_train.pkl", "wb") as f:
-#     pickle.dump(embeddings_train, f)
-
+print(X_test)
 embeddings_test = get_embeddings(X_test)
 # Save the embeddings to a file
-with open("embeddings_it_cased_test.pkl", "wb") as f:
+with open("embeddings_en_test.pkl", "wb") as f:
     pickle.dump(embeddings_test, f)
