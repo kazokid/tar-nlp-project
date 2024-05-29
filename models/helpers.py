@@ -10,6 +10,9 @@ BASE_PATH = (
 # if BASE_PATH is None:
 #     raise ValueError("Please set the environment variable MY_REPO_LOCATION")
 
+languages_train = ["fr", "ge", "it", "po", "ru"]
+languages_only_test = ["es", "gr", "ka"]
+all_languages = languages_train + languages_only_test
 
 CLASSES_SUBTASK_3_PATH = os.path.join(
     BASE_PATH, "bundle/scorers/techniques_subtask3.txt"
@@ -110,6 +113,30 @@ def get_paths(language, model_name="default_model", subtask=3):
         ),
         "dev_metrics": os.path.join(
             BASE_PATH, f"outputs/{model_name}/{language}-dev-metrics.txt"
+        ),
+        "train_embeddings": os.path.join(
+            BASE_PATH,
+            f"precomputed_embeddings/{model_name}/{language}/train_embeddings.pkl",
+        ),
+        "dev_embeddings": os.path.join(
+            BASE_PATH,
+            f"precomputed_embeddings/{model_name}/{language}/dev_embeddings.pkl",
+        ),
+        "test_embeddings": os.path.join(
+            BASE_PATH,
+            f"precomputed_embeddings/{model_name}/{language}/test_embeddings.pkl",
+        ),
+        "train_translated_template": os.path.join(
+            BASE_PATH,
+            f"data_translated/{language}/train_st3_translated.txt",
+        ),
+        "dev_translated_template": os.path.join(
+            BASE_PATH,
+            f"data_translated/{language}/dev_st3_translated.txt",
+        ),
+        "test_translated_template": os.path.join(
+            BASE_PATH,
+            f"data_translated/{language}/test_st3_translated.txt",
         ),
     }
     return paths

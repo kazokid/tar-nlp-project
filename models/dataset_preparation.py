@@ -1,44 +1,76 @@
 import ast
+import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer
 import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer
 
+import helpers
 
-class CustomDataset(Dataset):
+
+class PrecomputedEmbeddings(Dataset):
     def __init__(
         self,
-        data,
-        model_name,
-        max_length=200,
-        text_column="text",
-        label_column="labels",
+        embeddings_model_name: str,
+        languages: list,
+        split_type: str,
     ):
+        embeddings = pd.DataFrame()
+        labels = pd.DataFrame()
+
+        with open(helpers.CLASSES_SUBTASK_3_PATH, "r") as f:
+            classes = f.read().split("\n")
+            classes = [c for c in classes if c != ""]
+        self.labels_transformer = MultiLabelBinarizer(classes=classes)
+
+        for lang in languages:
+            paths = helpers.get_paths(lang, embeddings_model_name)
+            with open(paths[f"{split_type}_embeddings"], "rb") as f:
+                embeddings = pd.concat([embeddings, pd.read_pickle(f)])
+
+            lang_labels = pd.read_csv(
+                paths[f"{split_type}_labels"],
+                sep="\t",
+                encoding="utf-8",
+                header=None,
+            ).rename(columns={0: "id", 1: "line", 2: "labels"})
+
+            labels = pd.concat([labels, lang_labels])
+
+        labels["labels"] = labels["labels"].fillna("")
+        labels["labels"] = labels["labels"].str.split(",")
+
+        self.embeddings = embeddings
+        self.labels = labels
+        data = pd.merge(embeddings, labels, on=["id", "line"])
         self.data = data
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name, return_dict=False
-        )
-        self.text_column = text_column
-        self.label_column = label_column
-        self.max_length = max_length
-        self.many_hot = MultiLabelBinarizer()
+        print("Data rows:", len(data))
+        print("embeddings rows:", len(embeddings))
+        print("Labels rows:", len(labels))
 
-        # Apply one-hot encoding to labels
+        # labels rows not in embeddings
+        missing_ids = []
+        for idx, row in labels.iterrows():
+            if len(
+                embeddings[
+                    (embeddings["id"] == row["id"])
+                    & (embeddings["line"] == row["line"])
+                ]
+            ):
+                continue
 
-        self.labels_encoded = self.many_hot.fit_transform(
-            self.data[label_column].fillna("").str.split(",").values
-        ).tolist()  # remove the first column -it typically marks beginning of the sentece
-        # MultiLabelBinarizer automatically determines the number of unique labels
+            missing_ids.append(row["id"])
+        print("Missing embeddings rows:")
+        print(missing_ids)
+        print("Missing embeddings rows count:", len(missing_ids))
 
-    def safe_literal_eval(self, x):
-        try:
-            return ast.literal_eval(x)
-        except (ValueError, SyntaxError):
-            print("Error evaluating:", x)
-            return []
+        data["multi_hot_labels"] = self.labels_transformer.fit_transform(
+            data["labels"]
+        ).tolist()  # docs say If the classes parameter is set, y will not be iterated.
 
-    def multi_label_binarizer(self):
-        return self.many_hot
+        print("Data rows after transformation:", len(data))
+        print("Data columns:", data.columns)
+        print("Data head:", data.head())
 
     def __len__(self):
         return len(self.data)
@@ -52,36 +84,30 @@ class CustomDataset(Dataset):
 
         Returns:
         --------
-            input_ids (torch.Tensor): Tensor containing the IDs of each token in the sentence. Each ID represents the token's index in the vocabulary of the pretrained language model.
-            attention_mask (torch.Tensor): Tensor containing the attention mask for the input_ids. It masks padding tokens, ensuring that the model does not attend to them during training or inference.
-            labels (torch.Tensor): Tensor containing the predicted one-hot encoded labels.
+            embeddings (torch.Tensor): Tensor containing the precomputed embeddings of the text.
+            labels (torch.Tensor): Tensor containing the true multiple-hot encoded labels.
         """
-        text = self.data.iloc[idx][self.text_column]
-        labels = self.labels_encoded[idx]
-
-        # Tokenize the text
-        encoding = self.tokenizer(
-            text,
-            return_tensors="pt",
-            padding="max_length",
-            truncation=True,
-            max_length=self.max_length,
+        embeddings = torch.tensor(self.data.iloc[idx]["embeddings"])
+        labels = torch.tensor(
+            self.data.iloc[idx]["multi_hot_labels"], dtype=torch.float32
         )
 
-        input_ids = encoding[
-            "input_ids"
-        ].squeeze()  # Squeeze to remove extra dimensions
-        attention_mask = encoding["attention_mask"].squeeze()
-
-        labels = torch.tensor(labels, dtype=torch.float32)
-
-        return input_ids, attention_mask, labels
+        return embeddings, labels
 
 
-# vidjeti kako odrediti optimalan max_length ?
-def create_dataloader(data, model_name, batch_size=16, max_length=200):
+# This should be done when training and evaluating the model
+# def create_dataloader(data, model_name, batch_size=16, max_length=200):
 
-    dataset = CustomDataset(data, model_name, max_length)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+#     dataset = CustomDataset(data, model_name, max_length)
+#     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    return dataloader, dataset.multi_label_binarizer()
+#     return dataloader, dataset.multi_label_binarizer()
+
+
+if __name__ == "__main__":
+    # Test the PrecomputedEmbeddings class
+    model_name = "bert-base-multilingual-cased"
+    languages = helpers.languages_train
+    split_type = "train"
+    dataset = PrecomputedEmbeddings(model_name, languages, split_type)
+    print(dataset[1])

@@ -25,46 +25,48 @@ import models.dataset_preparation as dataset_preparation
 
 
 class BertBaseline(nn.Module):
-    def __init__(self, language: str, num_classes: int) -> None:
+    def __init__(self, embeddings_dimension: int, num_classes: int) -> None:
         super().__init__()
-        self.language = language
-        self.num_classes = num_classes
-        self.bert_tokenizer = BertTokenizer.from_pretrained(
-            "bert-base-multilingual-cased"
-        )
-        self.bert_model = BertModel.from_pretrained(
-            "bert-base-multilingual-cased"
-        )
-        self.loss_function = (
-            torch.nn.BCEWithLogitsLoss()
-        )  # check if this is the correct loss function
 
-        self.drop = torch.nn.Dropout(
-            0.3
-        )  # 0.3 - dont know what actually 0.3 means, one team has set the value to that
-        self.linear1 = torch.nn.Linear(
-            self.bert_model.config.hidden_size, self.num_classes
-        )
-
-    def added_parameters(self):
-        """Returns the parameters of the model that need to be optimized - excluding the BERT model parameters"""
-        return list(self.linear1.parameters())
+        self.linear1 = torch.nn.Linear(embeddings_dimension, num_classes)
 
     def forward(self, x):
+        x = self.linear1(x)
 
-        input_ids, attention_mask, labels = x
+        return x
 
-        outputs = self.bert_model(input_ids, attention_mask=attention_mask)
-        last_hidden_states = (
-            outputs.last_hidden_state
-        )  # [batch_size, max. sequence_length, size of hidden layer]
-        print("Last hidden state shape: ", last_hidden_states.shape)
 
-        drop = self.drop(last_hidden_states)
-        linear_output = self.linear1(drop)
-        print("Linear output shape: ", linear_output.shape)
+def train(model, optimizer, criterion, train_loader):
+    model.train()
 
-        return linear_output
+    for batch in train_loader:
+        optimizer.zero_grad()
+
+        embeddings, labels = batch
+
+        logits = model(embeddings)
+        loss = criterion(logits, labels)
+
+        loss.backward()
+        optimizer.step()
+
+
+def evaluate(model, criterion, val_loader, treshold=0.5):
+    model.eval()
+    predictions = []
+    true_labels = []
+
+    with torch.no_grad():
+        for batch in val_loader:
+            embeddings, labels = batch
+
+            logits = model(embeddings)
+            prediction = (torch.sigmoid(logits) > treshold).float()
+
+            predictions.append(prediction)
+            true_labels.append(labels)
+
+    # TODO finish this method and this file following dubuce1 lab3 instructions
 
 
 def model_pass(
