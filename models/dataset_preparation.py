@@ -4,8 +4,14 @@ from sklearn.preprocessing import MultiLabelBinarizer
 import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer
+import sys
 
-import helpers
+BASE_PATH = (
+    __file__.replace("\\", "/").split("tar-nlp-project")[0] + "tar-nlp-project/"
+)
+sys.path.append(BASE_PATH)  # enable importing from the root directory
+
+import models.helpers as helpers
 
 
 class PrecomputedEmbeddings(Dataset):
@@ -44,25 +50,25 @@ class PrecomputedEmbeddings(Dataset):
         self.labels = labels
         data = pd.merge(embeddings, labels, on=["id", "line"])
         self.data = data
-        print("Data rows:", len(data))
-        print("embeddings rows:", len(embeddings))
-        print("Labels rows:", len(labels))
+        # print("Data rows:", len(data)) # TODO fix this in dataset
+        # print("embeddings rows:", len(embeddings))
+        # print("Labels rows:", len(labels))
 
-        # labels rows not in embeddings
-        missing_ids = []
-        for idx, row in labels.iterrows():
-            if len(
-                embeddings[
-                    (embeddings["id"] == row["id"])
-                    & (embeddings["line"] == row["line"])
-                ]
-            ):
-                continue
+        # # labels rows not in embeddings
+        # missing_ids = []
+        # for idx, row in labels.iterrows():
+        #     if len(
+        #         embeddings[
+        #             (embeddings["id"] == row["id"])
+        #             & (embeddings["line"] == row["line"])
+        #         ]
+        #     ):
+        #         continue
 
-            missing_ids.append(row["id"])
-        print("Missing embeddings rows:")
-        print(missing_ids)
-        print("Missing embeddings rows count:", len(missing_ids))
+        #     missing_ids.append(row["id"])
+        # print("Missing embeddings rows:")
+        # print(missing_ids)
+        # print("Missing embeddings rows count:", len(missing_ids))
 
         data["multi_hot_labels"] = self.labels_transformer.fit_transform(
             data["labels"]
@@ -87,12 +93,14 @@ class PrecomputedEmbeddings(Dataset):
             embeddings (torch.Tensor): Tensor containing the precomputed embeddings of the text.
             labels (torch.Tensor): Tensor containing the true multiple-hot encoded labels.
         """
+        id = self.data.iloc[idx]["id"]
+        line = self.data.iloc[idx]["line"]
         embeddings = torch.tensor(self.data.iloc[idx]["embeddings"])
-        labels = torch.tensor(
+        hot_labels = torch.tensor(
             self.data.iloc[idx]["multi_hot_labels"], dtype=torch.float32
         )
 
-        return embeddings, labels
+        return id, line, embeddings, hot_labels
 
 
 # This should be done when training and evaluating the model
@@ -108,6 +116,6 @@ if __name__ == "__main__":
     # Test the PrecomputedEmbeddings class
     model_name = "bert-base-multilingual-cased"
     languages = helpers.languages_train
-    split_type = "train"
+    split_type = "dev"
     dataset = PrecomputedEmbeddings(model_name, languages, split_type)
     print(dataset[1])

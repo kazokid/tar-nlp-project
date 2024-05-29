@@ -74,10 +74,14 @@ def get_embeddings(texts):
             outputs = model(
                 input_ids=inputs["input_ids"],
                 attention_mask=inputs["attention_mask"],
+                output_hidden_states=True,  # different from RoBERTA
             )
 
         # Get the embeddings of the [CLS] token
-        cls_embedding = outputs.last_hidden_state[0][0].numpy()
+        # print("Outputs:", outputs)
+        cls_embedding = (
+            outputs.hidden_states[-1][0, 0].detach().numpy()
+        )  # different from RoBERTA
 
         embeddings.append(cls_embedding)
 

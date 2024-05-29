@@ -49,11 +49,12 @@ def make_dataframe_template(path: str, labels_fn: str = None):
         labels = pd.read_csv(labels_fn, sep="\t", encoding="utf-8", header=None)
         labels = labels.rename(columns={0: "id", 1: "line", 2: "labels"})
         labels = labels.set_index(["id", "line"])
-        labels = labels[labels.labels.notna()].copy()
-
+        # labels = labels[labels.labels.notna()].copy()
+        labels["labels"] = labels["labels"].fillna("")
         # JOIN
-        df = labels.join(df)[["text", "labels"]]
-
+        df = labels.merge(df, left_index=True, right_index=True)[
+            ["text", "labels"]
+        ]
     return df
 
 
@@ -72,7 +73,11 @@ def main():
 
     X_test = test["text"].values
 
-    multibin = MultiLabelBinarizer()  # use sklearn binarizer
+    with open(CLASSES_SUBTASK_3_PATH, "r") as f:
+        classes = f.read().split("\n")
+        classes = [c for c in classes if c != ""]
+
+    multibin = MultiLabelBinarizer(classes=classes)  # use sklearn binarizer
 
     Y_train = multibin.fit_transform(Y_train)
     # Create train-test split
@@ -82,8 +87,11 @@ def main():
         X_train = pickle.load(f)
 
     # load test embeddings
-    with open("embeddings_en__test.pkl", "rb") as f:
+    with open("embeddings_en_test.pkl", "rb") as f:
         X_test = pickle.load(f)
+
+    if len(X_train) != len(Y_train):
+        raise ValueError("X_train and Y_train must have the same length")
 
     print("Fitting logistic regression...")
     model = MultiOutputClassifier(

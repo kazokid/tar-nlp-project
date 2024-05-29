@@ -21,7 +21,7 @@ tokenizer = AutoTokenizer.from_pretrained("launch/POLITICS")
 model = AutoModelForMaskedLM.from_pretrained("launch/POLITICS")
 
 # Define the languages
-languages = ["en", "fr", "ge", "it", "po", "ru"]
+languages = ["fr", "ge", "it", "po", "ru"]
 
 all_embeddings = []
 all_labels = []
@@ -30,6 +30,7 @@ all_labels = []
 def get_embeddings(texts):
     embeddings = []
     for text in tqdm(texts):
+        # print("Text:", text)
         # Tokenize input and convert to PyTorch tensors
         inputs = tokenizer(
             text,
@@ -44,10 +45,14 @@ def get_embeddings(texts):
             outputs = model(
                 input_ids=inputs["input_ids"],
                 attention_mask=inputs["attention_mask"],
+                output_hidden_states=True,  # different from RoBERTA
             )
 
         # Get the embeddings of the [CLS] token
-        cls_embedding = outputs.last_hidden_state[0][0].numpy()
+        # print("Outputs:", outputs)
+        cls_embedding = (
+            outputs.hidden_states[-1][0, 0].detach().numpy()
+        )  # different from RoBERTA
 
         embeddings.append(cls_embedding)
 
@@ -77,19 +82,31 @@ def make_dataframe_template(path: str, labels_fn: str = None):
     df.line = df.line.apply(int)
     df = df[df.text.str.strip().str.len() > 0].copy()
     df = df.set_index(["id", "line"])
+    print(df)
 
     if labels_fn:
         # MAKE LABEL DATAFRAME
         labels = pd.read_csv(labels_fn, sep="\t", encoding="utf-8", header=None)
         labels = labels.rename(columns={0: "id", 1: "line", 2: "labels"})
         labels = labels.set_index(["id", "line"])
-        labels = labels[labels.labels.notna()].copy()
+        # labels = labels[labels.labels.notna()].copy()  # probelmatic??
+        labels["labels"] = labels["labels"].fillna(
+            ""
+        )  # TODO check where this is used
 
         # JOIN
-        df = labels.join(df)[["text", "labels"]]
+        df = labels.merge(df, left_index=True, right_index=True)[
+            ["text", "labels"]
+        ]
 
     return df
 
+
+with open("all_train_cased_embeddings.pkl", "rb") as f:
+    all_embeddings = pickle.load(f)
+
+with open("all_train_cased_labels.pkl", "rb") as f:
+    all_labels = pickle.load(f)
 
 for language in languages:
     # Define paths
@@ -100,11 +117,13 @@ for language in languages:
 
     # Read Data
     print(f"Loading {language} train dataset...")
-    train = bundle_baseline.make_dataframe(translated_train, labels_train_fn)
+    train = make_dataframe_template(translated_train, labels_train_fn)
 
     X_train = train["text"].values
     Y_train = train["labels"].fillna("").str.split(",").values
 
+    print("len(train):", len(train))
+    print("len(X_train):", len(X_train))
     embeddings = get_embeddings(X_train)
 
     all_embeddings.extend(embeddings)
