@@ -16,7 +16,9 @@ import models.helpers as helpers
 
 print("Loading model and tokenizer...")
 tokenizer = AutoTokenizer.from_pretrained("launch/POLITICS")
+print("Tokenizer loaded")
 model = AutoModelForMaskedLM.from_pretrained("launch/POLITICS")
+print("Model loaded")
 
 
 def make_dataframe_template(path: str):
