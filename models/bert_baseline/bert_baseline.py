@@ -29,10 +29,13 @@ class BertBaseline(nn.Module):
     def __init__(self, embeddings_dimension: int, num_classes: int) -> None:
         super().__init__()
 
-        self.linear1 = torch.nn.Linear(embeddings_dimension, num_classes)
+        self.linear1 = torch.nn.Linear(embeddings_dimension, 300)
+        self.linear2 = torch.nn.Linear(300, num_classes)
 
     def forward(self, x):
         x = self.linear1(x)
+        x = torch.relu(x)
+        x = self.linear2(x)
 
         return x
 
@@ -112,15 +115,15 @@ def main():
     optimizer = Adam(model.parameters(), lr=1e-4)
 
     patience = 5
-    best_macro_f1 = 0
+    best_micro = 0
     for epoch in range(int(1e3)):
         train(model, optimizer, criterion, train_loader)
         macro_f1, micro_f1 = evaluate(model, criterion, val_loader)
 
         print(f"Epoch {epoch + 1}, Macro F1: {macro_f1}, Micro F1: {micro_f1}")
 
-        if macro_f1 > best_macro_f1:
-            best_macro_f1 = macro_f1
+        if micro_f1 > best_micro:
+            best_micro = micro_f1
             patience = 5
         else:
             patience -= 1
