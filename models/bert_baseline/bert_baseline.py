@@ -26,16 +26,20 @@ import models.dataset_preparation as dataset_preparation
 
 
 class BertBaseline(nn.Module):
-    def __init__(self, embeddings_dimension: int, num_classes: int) -> None:
+    def __init__(
+        self, embeddings_dimension: int, num_classes: int, drop: float = 0.2
+    ) -> None:
         super().__init__()
 
-        self.linear1 = torch.nn.Linear(embeddings_dimension, num_classes)
-        # self.linear2 = torch.nn.Linear(300, num_classes)
+        self.linear1 = torch.nn.Linear(embeddings_dimension, 300)
+        self.drop = torch.nn.Dropout(drop)
+        self.linear2 = torch.nn.Linear(300, num_classes)
 
     def forward(self, x):
         x = self.linear1(x)
-        # x = torch.relu(x)
-        # x = self.linear2(x)
+        x = self.drop(x)
+        x = torch.relu(x)
+        x = self.linear2(x)
 
         return x
 
@@ -46,7 +50,7 @@ def train(model, optimizer, criterion, train_loader):
     for batch in train_loader:
         optimizer.zero_grad()
 
-        ids, lines, embeddings, labels = batch
+        ids, lines, embeddings, labels, frames = batch
 
         logits = model(embeddings)
         loss = criterion(logits, labels)
@@ -59,7 +63,7 @@ def evaluate(
     model,
     criterion,
     val_loader: DataLoader[dataset_preparation.PrecomputedEmbeddings],
-    treshold=0.5,
+    threshold=0.3,
 ):
     model.eval()
     predicted_labels = {}
@@ -70,10 +74,10 @@ def evaluate(
 
     with torch.no_grad():
         for batch in val_loader:
-            ids, lines, embeddings, labels = batch
+            ids, lines, embeddings, labels, frames = batch
 
             logits = model(embeddings)
-            prediction = (torch.sigmoid(logits) > treshold).int()
+            prediction = (torch.sigmoid(logits) > threshold).int()
             predicted_text = labels_tramsformer.inverse_transform(
                 prediction.cpu().numpy()
             )
@@ -100,10 +104,10 @@ def main():
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-    train_datataset = dataset_preparation.PrecomputedEmbeddings(
+    train_datataset = dataset_preparation.PrecomputedEmbeddingsAndST2Labels(
         "bert-base-multilingual-cased", helpers.languages_train, "train"
     )
-    val_dataset = dataset_preparation.PrecomputedEmbeddings(
+    val_dataset = dataset_preparation.PrecomputedEmbeddingsAndST2Labels(
         "bert-base-multilingual-cased", helpers.languages_train, "dev"
     )
 

@@ -1,0 +1,36 @@
+threshold = 0.5
+    Bert baseline (1 layer) train and eval on all languages
+    BEST: Epoch 22, Macro F1: 0.05177425115261197, Micro F1: 0.201901784551257
+
+    Bert with st2 labels (1 layer) train and eval on all languages
+    BEST: Epoch 25, Macro F1: 0.05280931933796862, Micro F1: 0.20710768002129643
+
+    Bert baseline (2 layers) train and eval on all languages
+    BEST: Epoch 19, Macro F1: 0.0688175276561386, Micro F1: 0.26185866408518876
+
+    Bert with st2 labels (2 layers) train and eval on all languages
+    BEST: Epoch 16, Macro F1: 0.07432540139243346, Micro F1: 0.27246306611770404
+
+    Bert with st2 labels (2 layers, late fusion) train and eval on all languages
+    BEST: Epoch 19, Macro F1: 0.0749545262625209, Micro F1: 0.2659259259259259
+
+threshold = 0.3
+    Bert baseline (2 layers) train and eval on all languages
+    BEST: Epoch 17, Macro F1: 0.13145905525000687, Micro F1: 0.37076138498702693
+
+    Bert with st2 labels (2 layers) train and eval on all languages
+    BEST: Epoch 5, Macro F1: 0.10472083471180689, Micro F1: 0.3606436781609195
+
+    Bert with st2 labels (2 layers, late fusion) train and eval on all languages
+    BEST: Epoch 15, Macro F1: 0.13476894595220912, Micro F1: 0.37340851218624954
+
+    dropout = 0.5
+        Bert baseline (2 layers) train and eval on all languages
+        BEST: Epoch 15, Macro F1: 0.10943670528872745, Micro F1: 0.36375537684683
+
+    dropout = 0.2
+        Bert baseline (2 layers) train and eval on all languages
+        BEST: Epoch 20, Macro F1: 0.1326338665056112, Micro F1: 0.3724040830693418
+
+        Bert with st2 labels (2 layers) train and eval on all languages
+        BEST: Epoch 13, Macro F1: 0.10240344838272318, Micro F1: 0.36183827806864455

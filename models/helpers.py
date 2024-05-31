@@ -21,6 +21,10 @@ CLASSES_SUBTASK_3_PATH = os.path.join(
     BASE_PATH, "bundle/scorers/techniques_subtask3.txt"
 )
 
+FRAMES_SUBTASK_2_PATH = os.path.join(
+    BASE_PATH, "bundle/scorers/frames_subtask2.txt"
+)
+
 
 def get_labels_folder_path(language, type, subtask):
     """Function that constructs the path to the folder given language and type (train, dev, test)

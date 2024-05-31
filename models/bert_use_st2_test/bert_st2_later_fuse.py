@@ -25,7 +25,7 @@ import models.helpers as helpers
 import models.dataset_preparation as dataset_preparation
 
 
-class BertWST2(nn.Module):
+class BertWST2LateFuse(nn.Module):
     def __init__(
         self,
         embeddings_dimension: int,
@@ -34,15 +34,19 @@ class BertWST2(nn.Module):
         drop: float = 0.5,
     ) -> None:
         super().__init__()
+        self.num_frames = num_frames
 
-        self.linear1 = torch.nn.Linear(embeddings_dimension + num_frames, 300)
+        self.linear1 = torch.nn.Linear(embeddings_dimension, 300)
         self.drop = torch.nn.Dropout(drop)
-        self.linear2 = torch.nn.Linear(300, num_classes)
+        self.linear2 = torch.nn.Linear(300 + num_frames, num_classes)
 
     def forward(self, x):
-        x = self.linear1(x)
+        embeddings = x[:, : -self.num_frames]
+        frames = x[:, -self.num_frames :]
+        x = self.linear1(embeddings)
         x = self.drop(x)
         x = torch.relu(x)
+        x = combined = torch.cat((x, frames), dim=1)
         x = self.linear2(x)
 
         return x
@@ -121,7 +125,7 @@ def main():
 
     train_loader = DataLoader(train_datataset, batch_size=16, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-    model = BertWST2(
+    model = BertWST2LateFuse(
         768,
         len(train_datataset.labels_transformer.classes),
         len(train_datataset.frames_transformer.classes),

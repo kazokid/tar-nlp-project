@@ -16,11 +16,11 @@ import models.helpers as helpers
 from transformers import BertTokenizer, BertModel
 
 # CHECK THIS:
-model_name = "bert-base-multilingual-cased"
+model_name = "FacebookAI/xlm-roberta-large"
 tokenizer = BertTokenizer.from_pretrained(model_name)
 model = BertModel.from_pretrained(model_name)
 
-OUR_MODEL_NAME = "bert-base-multilingual-cased"
+OUR_MODEL_NAME = "XLM_ROBERTA_LARGE"
 
 
 def get_embedding(text):
