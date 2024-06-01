@@ -23,6 +23,7 @@ import models.helpers as helpers
 import models.dataset_preparation as dataset_preparation
 
 from models.baseline.baseline import (
+    Baseline,
     Baseline3Layer,
     Baseline4Layer,
     Baseline5Layer,
@@ -30,6 +31,7 @@ from models.baseline.baseline import (
 from models.baseline.baseline import train as train_baseline
 from models.baseline.baseline import evaluate as evaluate_baseline
 from models.use_st2.baseline_with_st2 import (
+    BaselineWST2,
     Baseline3LayerWST2,
     Baseline4LayerWST2,
     Baseline5LayerWST2,
@@ -49,9 +51,11 @@ from models.use_st2_late_fuse.baseline_with_st2_late_fuse import (
 )
 
 models_dict = {
+    "baseline1Layer": (Baseline, train_baseline, evaluate_baseline),
     "baseline3layer": (Baseline3Layer, train_baseline, evaluate_baseline),
     "baseline4layer": (Baseline4Layer, train_baseline, evaluate_baseline),
     "baseline5layer": (Baseline5Layer, train_baseline, evaluate_baseline),
+    "use_st2_1layer": (BaselineWST2, train_st2, evaluate_st2),
     "use_st2_3layer": (Baseline3LayerWST2, train_st2, evaluate_st2),
     "use_st2_4layer": (Baseline4LayerWST2, train_st2, evaluate_st2),
     "use_st2_5layer": (Baseline5LayerWST2, train_st2, evaluate_st2),
