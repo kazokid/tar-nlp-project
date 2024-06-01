@@ -13,14 +13,14 @@ sys.path.append(BASE_PATH)  # enable importing from the root directory
 
 import bundle.baselines.st3 as bundle_baseline
 import models.helpers as helpers
-from transformers import BertTokenizer, BertModel
+from transformers import AutoTokenizer, XLMRobertaXLModel
 
 # CHECK THIS:
-model_name = "FacebookAI/xlm-roberta-large"
-tokenizer = BertTokenizer.from_pretrained(model_name)
-model = BertModel.from_pretrained(model_name)
+model_name = "facebook/xlm-roberta-xl"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = XLMRobertaXLModel.from_pretrained(model_name)
 
-OUR_MODEL_NAME = "XLM_ROBERTA_LARGE"
+OUR_MODEL_NAME = "xlm-roberta-large"
 
 
 def get_embedding(text):

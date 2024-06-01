@@ -15,6 +15,8 @@ import models.helpers as helpers
 
 
 class PrecomputedEmbeddings(Dataset):
+    """this class is not used as the latter one is more general"""
+
     def __init__(
         self,
         embeddings_model_name: str,

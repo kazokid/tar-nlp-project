@@ -2,13 +2,9 @@ import numpy as np
 import pandas as pd
 import torch
 import sys
-import argparse
-import os
 import torch.nn as nn
 
-from sklearn.metrics import classification_report as accuracy_score, f1_score
 from sklearn.preprocessing import MultiLabelBinarizer
-from transformers import BertTokenizer, BertModel
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
@@ -25,7 +21,27 @@ import models.helpers as helpers
 import models.dataset_preparation as dataset_preparation
 
 
-class BertWST2(nn.Module):
+class BaselineWST2(nn.Module):
+    def __init__(
+        self,
+        embeddings_dimension: int,
+        num_classes: int,
+        num_frames: int,
+        drop: float = 0.5,
+    ) -> None:
+        super().__init__()
+
+        self.linear1 = torch.nn.Linear(
+            embeddings_dimension + num_frames, num_classes
+        )
+
+    def forward(self, x):
+        x = self.linear1(x)
+
+        return x
+
+
+class Baseline2LayerWST2(nn.Module):
     def __init__(
         self,
         embeddings_dimension: int,
@@ -44,6 +60,105 @@ class BertWST2(nn.Module):
         x = self.drop(x)
         x = torch.relu(x)
         x = self.linear2(x)
+
+        return x
+
+
+class Baseline3LayerWST2(nn.Module):
+    def __init__(
+        self,
+        embeddings_dimension: int,
+        num_classes: int,
+        num_frames: int,
+        drop: float = 0.5,
+    ) -> None:
+        super().__init__()
+
+        self.linear1 = torch.nn.Linear(embeddings_dimension + num_frames, 300)
+        self.drop1 = torch.nn.Dropout(drop)
+        self.linear2 = torch.nn.Linear(300, 100)
+        self.drop2 = torch.nn.Dropout(drop)
+        self.linear3 = torch.nn.Linear(100, num_classes)
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.drop1(x)
+        x = torch.relu(x)
+        x = self.linear2(x)
+        x = self.drop2(x)
+        x = torch.relu(x)
+        x = self.linear3(x)
+
+        return x
+
+
+class Baseline4LayerWST2(nn.Module):
+    def __init__(
+        self,
+        embeddings_dimension: int,
+        num_classes: int,
+        num_frames: int,
+        drop: float = 0.5,
+    ) -> None:
+        super().__init__()
+
+        self.linear1 = torch.nn.Linear(embeddings_dimension + num_frames, 300)
+        self.drop1 = torch.nn.Dropout(drop)
+        self.linear2 = torch.nn.Linear(300, 100)
+        self.drop2 = torch.nn.Dropout(drop)
+        self.linear3 = torch.nn.Linear(100, 50)
+        self.drop3 = torch.nn.Dropout(drop)
+        self.linear4 = torch.nn.Linear(50, num_classes)
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.drop1(x)
+        x = torch.relu(x)
+        x = self.linear2(x)
+        x = self.drop2(x)
+        x = torch.relu(x)
+        x = self.linear3(x)
+        x = self.drop3(x)
+        x = torch.relu(x)
+        x = self.linear4(x)
+
+        return x
+
+
+class Baseline5LayerWST2(nn.Module):
+    def __init__(
+        self,
+        embeddings_dimension: int,
+        num_classes: int,
+        num_frames: int,
+        drop: float = 0.5,
+    ) -> None:
+        super().__init__()
+
+        self.linear1 = torch.nn.Linear(embeddings_dimension + num_frames, 300)
+        self.drop1 = torch.nn.Dropout(drop)
+        self.linear2 = torch.nn.Linear(300, 100)
+        self.drop2 = torch.nn.Dropout(drop)
+        self.linear3 = torch.nn.Linear(100, 50)
+        self.drop3 = torch.nn.Dropout(drop)
+        self.linear4 = torch.nn.Linear(50, 30)
+        self.drop4 = torch.nn.Dropout(drop)
+        self.linear5 = torch.nn.Linear(30, num_classes)
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.drop1(x)
+        x = torch.relu(x)
+        x = self.linear2(x)
+        x = self.drop2(x)
+        x = torch.relu(x)
+        x = self.linear3(x)
+        x = self.drop3(x)
+        x = torch.relu(x)
+        x = self.linear4(x)
+        x = self.drop4(x)
+        x = torch.relu(x)
+        x = self.linear5(x)
 
         return x
 
@@ -68,7 +183,9 @@ def train(model, optimizer, criterion, train_loader):
 def evaluate(
     model,
     criterion,
-    val_loader: DataLoader[dataset_preparation.PrecomputedEmbeddings],
+    val_loader: DataLoader[
+        dataset_preparation.PrecomputedEmbeddingsAndST2Labels
+    ],
     threshold=0.3,
 ):
     model.eval()
@@ -121,7 +238,7 @@ def main():
 
     train_loader = DataLoader(train_datataset, batch_size=16, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-    model = BertWST2(
+    model = Baseline2LayerWST2(
         768,
         len(train_datataset.labels_transformer.classes),
         len(train_datataset.frames_transformer.classes),
