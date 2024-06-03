@@ -169,12 +169,12 @@ def train(model, optimizer, criterion, train_loader):
     for batch in train_loader:
         optimizer.zero_grad()
 
-        ids, lines, embeddings, labels, frames = batch
+        ids, lines, embeddings, hot_labels, hot_frames = batch
 
-        combined = torch.cat((embeddings, frames), dim=1)
+        combined = torch.cat((embeddings, hot_frames), dim=1)
 
         logits = model(combined)
-        loss = criterion(logits, labels)
+        loss = criterion(logits, hot_labels)
 
         loss.backward()
         optimizer.step()
