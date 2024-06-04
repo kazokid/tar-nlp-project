@@ -24,6 +24,7 @@ import models.dataset_preparation as dataset_preparation
 
 from models.baseline.baseline import (
     Baseline,
+    Baseline2Layer,
     Baseline3Layer,
     Baseline4Layer,
     Baseline5Layer,
@@ -39,6 +40,7 @@ from models.use_st2.baseline_with_st2 import (
 from models.use_st2.baseline_with_st2 import train as train_st2
 from models.use_st2.baseline_with_st2 import evaluate as evaluate_st2
 from models.use_st2_late_fuse.baseline_with_st2_late_fuse import (
+    Baseline2LayerWST2LateFuse,
     Baseline3LayerWST2LateFuse,
     Baseline4LayerWST2LateFuse,
     Baseline5LayerWST2LateFuse,
@@ -51,36 +53,35 @@ from models.use_st2_late_fuse.baseline_with_st2_late_fuse import (
 )
 
 models_dict = {
-    "baseline1Layer": (Baseline, train_baseline, evaluate_baseline),
-    "baseline3layer": (Baseline3Layer, train_baseline, evaluate_baseline),
-    "baseline4layer": (Baseline4Layer, train_baseline, evaluate_baseline),
-    "baseline5layer": (Baseline5Layer, train_baseline, evaluate_baseline),
-    "use_st2_1layer": (BaselineWST2, train_st2, evaluate_st2),
-    "use_st2_3layer": (Baseline3LayerWST2, train_st2, evaluate_st2),
-    "use_st2_4layer": (Baseline4LayerWST2, train_st2, evaluate_st2),
-    "use_st2_5layer": (Baseline5LayerWST2, train_st2, evaluate_st2),
-    "use_st2_late_fuse_3layer": (
-        Baseline3LayerWST2LateFuse,
-        train_later_fuse,
-        evaluate_later_fuse,
-    ),
-    "use_st2_late_fuse_4layer": (
-        Baseline4LayerWST2LateFuse,
-        train_later_fuse,
-        evaluate_later_fuse,
-    ),
-    "use_st2_late_fuse_5layer": (
-        Baseline5LayerWST2LateFuse,
+    "baseline2layer": (Baseline2Layer, train_baseline, evaluate_baseline),
+    "late_fuse2layer": (
+        Baseline2LayerWST2LateFuse,
         train_later_fuse,
         evaluate_later_fuse,
     ),
 }
 
 
-def main(model_name: str, drop: float = 0.5, threshold: float = 0.2) -> None:
-    seed = 42
+def main(
+    model_name: str, drop: float = 0.5, threshold: float = 0.2, seed: int = 42
+) -> None:
     np.random.seed(seed)
     torch.manual_seed(seed)
+
+    val_per_lang = {}
+    for lang in helpers.languages_train:
+        val_per_lang[lang] = {
+            "dataset": dataset_preparation.PrecomputedEmbeddingsAndST2Labels(
+                "bert-base-multilingual-cased", [lang], "dev"
+            ),
+            "micro_f1": 0,
+            "macro_f1": 0,
+            "best_micro_f1": 0,
+            "best_macro_f1": 0,
+        }
+        val_per_lang[lang]["loader"] = DataLoader(
+            val_per_lang[lang]["dataset"], batch_size=32, shuffle=False
+        )
 
     train_datataset = dataset_preparation.PrecomputedEmbeddingsAndST2Labels(
         "bert-base-multilingual-cased", helpers.languages_train, "train"
@@ -89,17 +90,9 @@ def main(model_name: str, drop: float = 0.5, threshold: float = 0.2) -> None:
         "bert-base-multilingual-cased", helpers.languages_train, "dev"
     )
 
-    val_eng_dataset = dataset_preparation.PrecomputedEmbeddingsAndST2Labels(
-        "bert-base-multilingual-cased", ["en"], "dev"
-    )
-    val_it_dataset = dataset_preparation.PrecomputedEmbeddingsAndST2Labels(
-        "bert-base-multilingual-cased", ["it"], "dev"
-    )
-
     train_loader = DataLoader(train_datataset, batch_size=16, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-    val_eng_loader = DataLoader(val_eng_dataset, batch_size=32, shuffle=False)
-    val_it_loader = DataLoader(val_it_dataset, batch_size=32, shuffle=False)
+
     model, train, evaluate = models_dict[model_name]
     if "baseline" in model_name:
         model = model(
@@ -122,19 +115,22 @@ def main(model_name: str, drop: float = 0.5, threshold: float = 0.2) -> None:
     best_micro = 0
     macro_at_best_micro = 0
     best_epoch = 0
-    micro_f1_eng_at_best_micro = 0
-    micro_f1_it_at_best_micro = 0
+
     for epoch in range(int(1e3)):
         train(model, optimizer, criterion, train_loader)
         macro_f1, micro_f1 = evaluate(
             model, criterion, val_loader, threshold=threshold
         )
-        macro_f1_eng, micro_f1_eng = evaluate(
-            model, criterion, val_eng_loader, threshold=threshold
-        )
-        macro_f1_it, micro_f1_it = evaluate(
-            model, criterion, val_it_loader, threshold=threshold
-        )
+
+        for lang in helpers.languages_train:
+            val_per_lang[lang]["macro_f1"], val_per_lang[lang]["micro_f1"] = (
+                evaluate(
+                    model,
+                    criterion,
+                    val_per_lang[lang]["loader"],
+                    threshold=threshold,
+                )
+            )
 
         print(f"Epoch {epoch + 1}, Macro F1: {macro_f1}, Micro F1: {micro_f1}")
 
@@ -142,74 +138,108 @@ def main(model_name: str, drop: float = 0.5, threshold: float = 0.2) -> None:
             best_micro = micro_f1
             macro_at_best_micro = macro_f1
             best_epoch = epoch
-            micro_f1_eng_at_best_micro = micro_f1_eng
-            micro_f1_it_at_best_micro = micro_f1_it
+            for lang in helpers.languages_train:
+                val_per_lang[lang]["best_micro_f1"] = val_per_lang[lang][
+                    "micro_f1"
+                ]
+                val_per_lang[lang]["best_macro_f1"] = val_per_lang[lang][
+                    "macro_f1"
+                ]
             patience = 5
         else:
             patience -= 1
 
         if patience == 0:
             break
-    return (
-        best_micro,
-        macro_at_best_micro,
-        best_epoch,
-        micro_f1_eng_at_best_micro,
-        micro_f1_it_at_best_micro,
-    )
+    return best_micro, macro_at_best_micro, best_epoch, val_per_lang
 
 
 if __name__ == "__main__":
     all_results = []
     seen_configs = set()
-    RESULTS_CSV_FILENAME = "hyperparam_results_2.csv"
+    RESULTS_CSV_FILENAME = "hyperparam_results_3.csv"
     with open(RESULTS_CSV_FILENAME, "r") as f:
         reader = csv.DictReader(f)
         all_results = list(reader)
 
     for row in all_results:
-        seen_configs.add((row["model_name"], row["drop"], row["threshold"]))
+        seen_configs.add(
+            (row["model_name"], row["drop"], row["threshold"], row["seed"])
+        )
 
-    for model_name in models_dict.keys():
-        for drop in [0.3, 0.4, 0.5, 0.6]:
-            for threshold in [0.2]:
-                if (model_name, str(drop), str(threshold)) in seen_configs:
-                    continue
-                print(
-                    f"Running {model_name} with drop {drop} and threshold {threshold}"
-                )
-                (
-                    best_micro,
-                    macro_at_best_micro,
-                    best_epoch,
-                    micro_f1_eng_at_best_micro,
-                    micro_f1_it_at_best_micro,
-                ) = main(model_name, drop, threshold)
-                all_results.append(
-                    {
+    seeds = [
+        42,
+        65,
+        89,
+        100,
+        150,
+        111,
+        222,
+        333,
+        444,
+        555,
+        666,
+        777,
+        888,
+        999,
+        552,
+        828,
+        370,
+        707,
+        808,
+        909,
+        298,
+        982,
+        289,
+        892,
+        928,
+        829,
+        982,
+        829,
+    ]
+    print(f"Total seeds: {len(seeds)}")
+    for seed in seeds:
+        for model_name in models_dict.keys():
+            for drop in [0.3, 0.4, 0.5]:
+                for threshold in [0.2]:
+                    if (
+                        model_name,
+                        str(drop),
+                        str(threshold),
+                        str(seed),
+                    ) in seen_configs:
+                        continue
+                    print(
+                        f"Running {model_name} with drop {drop} and threshold {threshold}, seed = {seed}"
+                    )
+                    (
+                        best_micro,
+                        macro_at_best_micro,
+                        best_epoch,
+                        val_per_lang,
+                    ) = main(model_name, drop, threshold, seed)
+                    result = {
                         "model_name": model_name,
                         "drop": drop,
                         "threshold": threshold,
                         "best_micro": best_micro,
                         "macro_at_best_micro": macro_at_best_micro,
                         "best_epoch": best_epoch,
-                        "mi_f1_eng_at_best_micro": micro_f1_eng_at_best_micro,
-                        "mi_f1_it_at_best_micro": micro_f1_it_at_best_micro,
+                        "seed": seed,
                     }
-                )
-                with open(RESULTS_CSV_FILENAME, "w", newline="") as f:
-                    writer = csv.DictWriter(
-                        f,
-                        fieldnames=[
-                            "model_name",
-                            "drop",
-                            "threshold",
-                            "best_micro",
-                            "macro_at_best_micro",
-                            "best_epoch",
-                            "mi_f1_eng_at_best_micro",
-                            "mi_f1_it_at_best_micro",
-                        ],
-                    )
-                    writer.writeheader()
-                    writer.writerows(all_results)
+                    for lang in helpers.languages_train:
+                        result[f"mi_f1_at_be_mic_{lang}"] = val_per_lang[lang][
+                            "best_micro_f1"
+                        ]
+                        result[f"ma_f1_at_be_mic_{lang}"] = val_per_lang[lang][
+                            "best_macro_f1"
+                        ]
+                    all_results.append(result)
+
+                    with open(RESULTS_CSV_FILENAME, "w", newline="") as f:
+                        writer = csv.DictWriter(
+                            f,
+                            fieldnames=list(all_results[0].keys()),
+                        )
+                        writer.writeheader()
+                        writer.writerows(all_results)
