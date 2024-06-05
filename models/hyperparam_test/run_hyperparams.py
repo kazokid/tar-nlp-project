@@ -194,9 +194,12 @@ if __name__ == "__main__":
         892,
         928,
         829,
-        982,
-        829,
+        985,
+        822,
+        123,
+        321,
     ]
+    print(f"Total distinct seeds: {len(set(seeds))}")
     print(f"Total seeds: {len(seeds)}")
     for seed in seeds:
         for model_name in models_dict.keys():
