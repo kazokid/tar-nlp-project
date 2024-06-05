@@ -179,7 +179,9 @@ def train(model, optimizer, criterion, train_loader):
 def evaluate(
     model,
     criterion,
-    val_loader: DataLoader[dataset_preparation.PrecomputedEmbeddings],
+    val_loader: DataLoader[
+        dataset_preparation.PrecomputedEmbeddingsAndST2Labels
+    ],
     threshold=0.3,
 ):
     model.eval()
