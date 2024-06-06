@@ -62,7 +62,7 @@ class PrecomputedEmbeddingsAndST2Labels(Dataset):
             lang_frames["frames"] = lang_frames["frames"].fillna("")
             lang_frames["frames"] = lang_frames["frames"].str.split(",")
 
-            # merge and split at lanuage level ensure that there is no leakage between validation
+            # merge and split at language level ensure that there is no leakage between validation
             # and test when loading different language lists
             lang_data = pd.merge(
                 lang_embeddings, lang_labels, on=["id", "line"]
