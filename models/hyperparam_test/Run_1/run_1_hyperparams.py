@@ -139,9 +139,9 @@ if __name__ == "__main__":
                 )
             )
 
-        for drop in [0.2, 0.4, 0.6, 0.8]:
-            for threshold in [0.1, 0.2, 0.3, 0.4]:
-                for lr in [1e-3, 1e-4, 1e-5]:
+        for drop in [0.2, 0.4, 0.6]:
+            for threshold in [0.1, 0.2, 0.3]:
+                for lr in [1e-3, 1e-4]:
                     for batch_size in [16, 32, 64]:
                         if (
                             model_name,

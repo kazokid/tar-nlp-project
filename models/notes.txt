@@ -34,3 +34,12 @@ threshold = 0.3
 
         Bert with st2 labels (2 layers) train and eval on all languages
         BEST: Epoch 13, Macro F1: 0.10240344838272318, Micro F1: 0.36183827806864455
+
+
+
+paper name brainstorming:
+    - Is it all about framing? Impact of framing on propaganda detection
+    - Tell me how you frame it and I'll tell you if it's propaganda
+    - Tell me how you frame it and I might understand you faster
+    - ML model's course on starting a political career: Impact of framing on propaganda detection
+
