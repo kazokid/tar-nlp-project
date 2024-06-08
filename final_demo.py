@@ -20,7 +20,6 @@ from models.use_st2_late_fuse.baseline_with_st2_late_fuse import (
     Baseline2LayerWST2LateFuse,
 )
 
-# CHECK THIS:
 model_name = "bert-base-multilingual-cased"
 tokenizer = BertTokenizer.from_pretrained(model_name)
 model = BertModel.from_pretrained(model_name)
@@ -29,7 +28,9 @@ OUR_MODEL_NAME = "bert-base-multilingual-cased"
 
 
 def get_embedding(text):
-    # modify to handle longer texts if needed
+    seed_val = 42
+    torch.manual_seed(seed_val)
+
     inputs = tokenizer(
         text,
         return_tensors="pt",
@@ -92,10 +93,12 @@ def get_prediction_baseline(text):
 user_input = input("Enter a sentence: ")
 
 while user_input != "exit":
+    print()
     predictions, probs = get_prediction_baseline(user_input)
     if len(predictions) > 0:
+        print("Predictions: \tlabels (probability)")
         for label, prob in zip(predictions, probs):
-            print(f"{label} ({prob:.2f})")
+            print(f"\t\t{label} ({prob:.2f})")
     else:
         print("No labels predicted")
 
