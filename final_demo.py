@@ -96,7 +96,7 @@ while user_input != "exit":
     print()
     predictions, probs = get_prediction_baseline(user_input)
     if len(predictions) > 0:
-        print("Predictions: \tlabels (probability)")
+        print("Predictions: \tlabels (confidence)")
         for label, prob in zip(predictions, probs):
             print(f"\t\t{label} ({prob:.2f})")
     else:
